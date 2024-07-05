@@ -18,15 +18,18 @@ async function startOnboarding(waId) {
 
 async function flowController(req, res, next) {
   try {
-    const { userInfo, message } = req.body;
+    const { userInfo, message, flowStep } = req.body;
     const flow = req.params.flowName;
-    console.log(flow, userInfo);
-    res.status(200).send({
-      status: "data Recieved",
-      flow,
-      data: message,
-    });
+    console.log(flow, userInfo, flowStep);
+    if (flow === "onboarding") {
+      if (flowStep === 1) {
+        await startOnboarding(userInfo.WaId);
+      }
+    }
+    res.status(200).send("message sent to user");
   } catch (err) {
     res.status(500).send(err);
   }
 }
+
+module.exports = { flowController };

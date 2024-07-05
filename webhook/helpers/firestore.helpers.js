@@ -3,11 +3,11 @@ const { v4: uuidv4 } = require("uuid");
 async function createNewFlow(db, flowData) {
   const flowId = uuidv4();
   const startTime = new Date().toISOString();
-  const { flow, userInfo } = flowData;
+  const { flowName, userInfo } = flowData;
   const userId = userInfo.WaId;
   const data = {
     startTime,
-    flow,
+    flowName,
     userId,
   };
   await db.collection("flows").doc(flowId).set(data);
@@ -16,7 +16,11 @@ async function createNewFlow(db, flowData) {
 async function getCurrentFlow(db, userData) {
   const userId = userData.WaId;
   const flowRef = db.collection("flows").where("userId", "==", userId).get();
-  console.log("flowRef", flowRef);
+  const currentFlow = await flowRef.get();
+  if (currentFlow.exists()) {
+    console.log(currentFlow);
+    return currentFlow;
+  }
 }
 
 module.exports = {
