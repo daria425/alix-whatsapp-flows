@@ -1,4 +1,3 @@
-const testUser = require("../tests/testUser.json");
 async function saveUser(mongoClient, userData) {
   try {
     const db = mongoClient.db("signposting_db");
@@ -18,9 +17,6 @@ async function saveUser(mongoClient, userData) {
 
 async function getUser(mongoClient, recipient) {
   try {
-    // if (process.env.NODE_ENV == "development") {
-    //   return testUser;
-    // }
     const db = mongoClient.db("signposting_db");
     const collection = db.collection("users");
     const user = await collection.findOne({ "WaId": recipient });
@@ -30,7 +26,21 @@ async function getUser(mongoClient, recipient) {
   }
 }
 
+async function updateUser(mongoClient, recipient, update) {
+  try {
+    const db = mongoClient.db("signposting_db");
+    const collection = db.collection("users");
+    await collection.findOneAndUpdate(
+      { "WaId": recipient },
+      { "$set": update }
+    );
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 module.exports = {
   getUser,
   saveUser,
+  updateUser,
 };
