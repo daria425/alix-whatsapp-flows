@@ -2,3 +2,5 @@
 testMessages.json
 node_modules/
 testUser.json
+app.yaml
+.gcloudignore
