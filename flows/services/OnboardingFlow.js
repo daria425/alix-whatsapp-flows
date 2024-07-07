@@ -29,7 +29,7 @@ class OnboardingFlow {
       } else if (flowStep === 4) {
         await this.updateUser({ "organization": this.messageContent });
       } else if (flowStep === 6) {
-        await this.updateUser({ "postcode": this.messageContent });
+        await this.updateUser({ "language": this.messageContent });
       } else if (flowStep === 7) {
         await this.updateUser({
           "completed_onboarding": true,
@@ -41,7 +41,7 @@ class OnboardingFlow {
     } else {
       const templateSid = await findTemplateSid("select_language", false);
       const templateMessage = createTemplateMessage(this.waId, templateSid);
-      await this.updateUser({ "language": this.messageContent });
+      await this.updateUser({ "postcode": this.messageContent });
       await sendMessage(templateMessage);
     }
   }
