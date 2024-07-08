@@ -8,13 +8,12 @@ const axios = require("axios");
 const { getUser, saveUser } = require("../helpers/database.helpers");
 const { firestore } = require("../config/firestore.config");
 async function handleMessage(req, res, next) {
-  const mongoClient = req.app.locals.mongoClient; //eslint-disable-line
   try {
     const body = JSON.parse(JSON.stringify(req.body));
     console.log("recieved message", body);
     const waId = body.WaId;
     const profileName = body.ProfileName;
-    const registeredUser = await getUser(mongoClient, waId);
+    const registeredUser = await getUser(waId);
     const userData = registeredUser || {
       "WaId": waId,
       "ProfileName": profileName,
@@ -27,7 +26,7 @@ async function handleMessage(req, res, next) {
     };
     if (!registeredUser || body.Body === "test") {
       //first check, any message where the user is not registered gets forwarded to the onboarding flow
-      await saveUser(mongoClient, userData);
+      await saveUser(userData);
       await createNewFlow(firestore, {
         ...messageData,
         flowName: "onboarding",

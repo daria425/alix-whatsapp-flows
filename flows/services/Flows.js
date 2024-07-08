@@ -6,16 +6,15 @@ const { sendMessage } = require("../helpers/twilio.helpers");
 const { updateUser } = require("../helpers/database.helpers");
 const { findTemplateSid } = require("../helpers/twilio_account.helpers");
 class BaseFlow {
-  constructor(userInfo, userMessage, mongoClient) {
+  constructor(userInfo, userMessage) {
     this.waId = userInfo.WaId;
     this.messageContent = userMessage?.Body;
     this.listId = userMessage?.ListId;
-    this.mongoClient = mongoClient;
   }
 }
 class OnboardingFlow extends BaseFlow {
-  constructor(userInfo, userMessage, mongoClient) {
-    super(userInfo, userMessage, mongoClient);
+  constructor(userInfo, userMessage) {
+    super(userInfo, userMessage);
     this.onboardingTexts = {
       1: `Hello!\n\nWelcome to Alix Signposting.\n\nAlix signposts you to local and national help, starting in the region of Cornwall. You can find out more at https://www.projectalix.com/Cornwall\n\nLet's get started:\nPlease enter 'next' to continue.`,
       2: `Step 1 of 4: To begin, what is your name?`, // update name
@@ -57,13 +56,13 @@ class OnboardingFlow extends BaseFlow {
 
   async updateUser(updateData) {
     // Assuming updateUser function exists and updates the user in the database
-    await updateUser(this.mongoClient, this.waId, updateData);
+    await updateUser(this.waId, updateData);
   }
 }
 
 class SignpostingFlow extends BaseFlow {
-  constructor(userInfo, userMessage, mongoClient) {
-    super(userInfo, userMessage, mongoClient);
+  constructor(userInfo, userMessage) {
+    super(userInfo, userMessage);
     this.signpostingTemplates = {};
   }
   async init() {
