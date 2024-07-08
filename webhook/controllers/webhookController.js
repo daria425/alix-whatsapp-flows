@@ -9,11 +9,12 @@ const { getUser, saveUser } = require("../helpers/database.helpers");
 const { firestore } = require("../config/firestore.config");
 async function handleMessage(req, res, next) {
   try {
+    const db = req.app.locals.db;
     const body = JSON.parse(JSON.stringify(req.body));
     console.log("recieved message", body);
     const waId = body.WaId;
     const profileName = body.ProfileName;
-    const registeredUser = await getUser(waId);
+    const registeredUser = await getUser(db, waId);
     const userData = registeredUser || {
       "WaId": waId,
       "ProfileName": profileName,
@@ -26,7 +27,7 @@ async function handleMessage(req, res, next) {
     };
     if (!registeredUser || body.Body === "test") {
       //first check, any message where the user is not registered gets forwarded to the onboarding flow
-      await saveUser(userData);
+      await saveUser(db, userData);
       await createNewFlow(firestore, {
         ...messageData,
         flowName: "onboarding",

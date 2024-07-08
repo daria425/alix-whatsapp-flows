@@ -3,9 +3,11 @@
 /**
  * Module dependencies.
  */
-
+require("dotenv").config();
+const { MongoClient } = require("mongodb");
+const uri = process.env.MONGO_URI;
 const app = require("../app");
-const debug = require("debug")("journeys:server");
+const debug = require("debug")("flows:server");
 const http = require("http");
 
 /**
@@ -24,8 +26,17 @@ const server = http.createServer(app);
 /**
  * Listen on provided port, on all network interfaces.
  */
+MongoClient.connect(uri)
+  .then((client) => {
+    const db = client.db("signposting_db");
+    app.locals.db = db;
+    console.log("mongo connected");
+    server.listen(port);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 
-server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
 

@@ -1,11 +1,5 @@
-const { MongoClient } = require("mongodb");
-
-const uri = process.env.MONGO_URI;
-const mongoClient = new MongoClient(uri);
-async function saveUser(userData) {
+async function saveUser(db, userData) {
   try {
-    await mongoClient.connect();
-    const db = mongoClient.db("signposting_db");
     const collection = db.collection("users");
     const user = await collection.findOne({ "WaId": userData.WaId });
     if (user) {
@@ -17,29 +11,21 @@ async function saveUser(userData) {
       });
   } catch (err) {
     console.log(err);
-  } finally {
-    await mongoClient.close();
   }
 }
 
-async function getUser(recipient) {
+async function getUser(db, recipient) {
   try {
-    await mongoClient.connect();
-    const db = mongoClient.db("signposting_db");
     const collection = db.collection("users");
     const user = await collection.findOne({ "WaId": recipient });
     return user;
   } catch (err) {
     console.log(err);
-  } finally {
-    await mongoClient.close();
   }
 }
 
-async function updateUser(recipient, update) {
+async function updateUser(db, recipient, update) {
   try {
-    await mongoClient.connect();
-    const db = mongoClient.db("signposting_db");
     const collection = db.collection("users");
     await collection.findOneAndUpdate(
       { "WaId": recipient },
@@ -47,8 +33,6 @@ async function updateUser(recipient, update) {
     );
   } catch (err) {
     console.log(err);
-  } finally {
-    await mongoClient.close();
   }
 }
 

@@ -6,7 +6,8 @@ const { sendMessage } = require("../helpers/twilio.helpers");
 const { updateUser } = require("../helpers/database.helpers");
 const { findTemplateSid } = require("../helpers/twilio_account.helpers");
 class BaseFlow {
-  constructor(userInfo, userMessage) {
+  constructor(db, userInfo, userMessage) {
+    this.db = db;
     this.waId = userInfo.WaId;
     this.messageContent = userMessage?.Body;
     this.listId = userMessage?.ListId;
@@ -56,7 +57,7 @@ class OnboardingFlow extends BaseFlow {
 
   async updateUser(updateData) {
     // Assuming updateUser function exists and updates the user in the database
-    await updateUser(this.waId, updateData);
+    await updateUser(this.db, this.waId, updateData);
   }
 }
 

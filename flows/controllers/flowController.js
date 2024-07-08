@@ -1,17 +1,18 @@
 const { OnboardingFlow, SignpostingFlow } = require("../services/Flows");
 
-async function runOnboardingFlow(userInfo, flowStep, userMessage) {
-  const onboardingFlow = new OnboardingFlow(userInfo, userMessage);
+async function runOnboardingFlow(db, userInfo, flowStep, userMessage) {
+  const onboardingFlow = new OnboardingFlow(db, userInfo, userMessage);
   const flowCompletionStatus = await onboardingFlow.handleFlowStep(flowStep);
   return flowCompletionStatus;
 }
 
-async function runSignpostingFlow(userInfo, flowStep, userMessage) {
-  const signpostingFlow = new SignpostingFlow(userInfo, userMessage);
+async function runSignpostingFlow(db, userInfo, flowStep, userMessage) {
+  const signpostingFlow = new SignpostingFlow(db, userInfo, userMessage);
   const flowCompletionStatus = await signpostingFlow.handleFlowStep(flowStep);
   return flowCompletionStatus;
 }
 async function flowController(req, res, next) {
+  const db = req.app.locals.db;
   let flowCompletionStatus;
   try {
     const { userInfo, message, flowStep } = req.body;
@@ -24,12 +25,14 @@ async function flowController(req, res, next) {
     });
     if (flow === "onboarding") {
       flowCompletionStatus = await runOnboardingFlow(
+        db,
         userInfo,
         flowStep,
         message
       );
     } else if (flow === "signposting") {
       flowCompletionStatus = await runSignpostingFlow(
+        db,
         userInfo,
         flowStep,
         message
