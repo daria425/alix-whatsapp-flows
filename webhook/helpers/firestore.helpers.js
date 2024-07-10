@@ -40,6 +40,25 @@ async function deleteFlowOnCompletion(db, flowId) {
   console.log(`flow ${flowId} completed and deleted successfully`);
 }
 
+async function deleteFlowOnErr(db, userId, err) {
+  const currentFlowSnapshot = await db
+    .collection("flows")
+    .where("userId", "==", userId)
+    .get();
+  if (!currentFlowSnapshot.empty) {
+    // Iterate through all the documents and delete them
+    const deletePromises = currentFlowSnapshot.docs.map((doc) =>
+      db.collection("flows").doc(doc.id).delete()
+    );
+    // Wait for all delete operations to complete
+    await Promise.all(deletePromises);
+    return {
+      message: `All flows for user with id ${userId} deleted because of error: ${err}`,
+    };
+  } else {
+    return { message: "No documents found for the specified userId" };
+  }
+}
 async function updateUserSelection(db, flowId, flowStep, selectionValue) {
   const selectionNames = {
     2: "category",
@@ -70,4 +89,5 @@ module.exports = {
   getCurrentFlow,
   deleteFlowOnCompletion,
   updateUserSelection,
+  deleteFlowOnErr,
 };

@@ -6,10 +6,19 @@ async function runOnboardingFlow(db, userInfo, flowStep, userMessage) {
   return flowCompletionStatus;
 }
 
-async function runSignpostingFlow(db, userInfo, flowStep, userMessage) {
+async function runSignpostingFlow(
+  db,
+  userInfo,
+  flowStep,
+  userMessage,
+  userSelection
+) {
   console.log(userMessage);
   const signpostingFlow = new SignpostingFlow(db, userInfo, userMessage);
-  const flowCompletionStatus = await signpostingFlow.handleFlowStep(flowStep);
+  const flowCompletionStatus = await signpostingFlow.handleFlowStep(
+    flowStep,
+    userSelection
+  );
   return flowCompletionStatus;
 }
 async function flowController(req, res, next) {
@@ -32,12 +41,13 @@ async function flowController(req, res, next) {
         message
       );
     } else if (flow === "signposting") {
-      console.log(req.body.userSelection);
+      const userSelection = req.body.userSelection;
       flowCompletionStatus = await runSignpostingFlow(
         db,
         userInfo,
         flowStep,
-        message
+        message,
+        userSelection
       );
     }
     res.status(200).send({ flowCompletionStatus });

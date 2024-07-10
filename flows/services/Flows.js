@@ -2,12 +2,14 @@ const {
   createTextMessage,
   createTemplateMessage,
 } = require("../helpers/messages.helpers");
+const { formatTag } = require("../helpers/format.helpers");
 const { sendMessage } = require("../helpers/twilio.helpers");
-const { updateUser } = require("../helpers/database.helpers");
+const { updateUser, selectOptions } = require("../helpers/database.helpers");
 const { findTemplateSid } = require("../helpers/twilio_account.helpers");
 class BaseFlow {
   constructor(db, userInfo, userMessage) {
     this.db = db;
+    this.userInfo = userInfo;
     this.waId = userInfo.WaId;
     this.messageContent = userMessage?.Body;
     this.listId = userMessage?.ListId;
@@ -90,20 +92,35 @@ class SignpostingFlow extends BaseFlow {
     };
   }
 
-  async handleFlowStep(flowStep) {
+  async handleFlowStep(flowStep, userSelection) {
+    console.log("user selection:", userSelection);
     let flowCompletionStatus = false;
     if (flowStep <= 3) {
       await this.init();
       const templateSid = this.signpostingTemplates[flowStep]["templateSid"];
       const templateVariables =
         this.signpostingTemplates[flowStep]["templateVariables"];
-      console.log(templateSid);
       const template = createTemplateMessage(
         this.waId,
         templateSid,
         templateVariables
       );
       await sendMessage(template);
+    }
+    if (flowStep === 4) {
+      const { location, category, page } = userSelection;
+      const { postcode, language } = this.userInfo; //eslint-disable-line
+      const tag = formatTag(category);
+      const pageSize = 5;
+      const location_choice = location.toLowerCase();
+      const opts = await selectOptions(
+        this.db,
+        tag,
+        location_choice,
+        page,
+        pageSize
+      );
+      console.log("Final options", opts);
     }
     return flowCompletionStatus;
   }

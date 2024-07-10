@@ -25,7 +25,6 @@ async function findTemplateSid(templateName, convertTemplate = true) {
       (template) => template.friendly_name === searchableTemplateName
     );
     if (foundTemplate) {
-      console.log("template sid", foundTemplate.sid);
       return foundTemplate.sid;
     }
   } catch (err) {

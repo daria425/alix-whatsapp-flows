@@ -2,6 +2,7 @@ const {
   createNewFlow,
   getCurrentFlow,
   deleteFlowOnCompletion,
+  deleteFlowOnErr,
   updateUserSelection,
 } = require("../helpers/firestore.helpers");
 const { api_base } = require("../config/api_base.config");
@@ -9,12 +10,12 @@ const axios = require("axios");
 const { getUser, saveUser } = require("../helpers/database.helpers");
 const { firestore } = require("../config/firestore.config");
 async function handleMessage(req, res, next) {
+  const db = req.app.locals.db;
+  const body = JSON.parse(JSON.stringify(req.body));
+  const waId = body.WaId;
+  const profileName = body.ProfileName;
+  console.log("recieved message", body);
   try {
-    const db = req.app.locals.db;
-    const body = JSON.parse(JSON.stringify(req.body));
-    console.log("recieved message", body);
-    const waId = body.WaId;
-    const profileName = body.ProfileName;
     const registeredUser = await getUser(db, waId);
     const userData = registeredUser || {
       "WaId": waId,
@@ -80,12 +81,7 @@ async function handleMessage(req, res, next) {
         );
         messageData.userSelection = updatedDoc?.userSelection;
       }
-      console.log(
-        "message to be sent",
-        messageData,
-        "current flow",
-        currentFlow
-      );
+      console.log("message to be sent", messageData);
       const response = await axios({
         headers: {
           "Content-Type": "application/json",
@@ -102,6 +98,7 @@ async function handleMessage(req, res, next) {
     }
   } catch (err) {
     console.log(err);
+    await deleteFlowOnErr(firestore, waId, err);
     res.status(500).send(err);
   }
 }
