@@ -113,14 +113,21 @@ class SignpostingFlow extends BaseFlow {
       const tag = formatTag(category);
       const pageSize = 5;
       const location_choice = location.toLowerCase();
-      const opts = await selectOptions(
+      const dbResult = await selectOptions(
         this.db,
         tag,
         location_choice,
         page,
         pageSize
       );
-      console.log("Final options", opts);
+      console.log("Final options", dbResult);
+      const { result, remaining } = dbResult;
+      for (const item of result) {
+        const messageContent = JSON.stringify(item);
+        console.log("sending message:", messageContent);
+        const message = createTextMessage(this.waId, messageContent);
+        await sendMessage(message);
+      }
     }
     return flowCompletionStatus;
   }
