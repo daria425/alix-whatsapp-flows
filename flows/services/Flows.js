@@ -122,6 +122,7 @@ class SignpostingFlow extends BaseFlow {
       );
       console.log("Final options", dbResult);
       const { result, remaining } = dbResult;
+      const moreOptionsAvailable = remaining >= pageSize;
       for (const item of result) {
         const messageContent = JSON.stringify(item);
         console.log("sending message:", messageContent);
@@ -130,6 +131,18 @@ class SignpostingFlow extends BaseFlow {
       }
     }
     return flowCompletionStatus;
+  }
+  async sendLastOptionMessage(recipient, moreOptionsAvailable) {
+    let message;
+    if (moreOptionsAvailable) {
+      const contentSid = "HX31992901024acd003249c56f412fba4f";
+      message = createTemplateMessage(recipient, contentSid);
+    } else {
+      const text =
+        "Thanks for using the service just now, please text 'hi' to search again";
+      message = createTextMessage(recipient, text);
+    }
+    return message;
   }
 }
 module.exports = {
