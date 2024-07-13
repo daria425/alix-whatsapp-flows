@@ -135,10 +135,10 @@ class SignpostingFlow extends BaseFlow {
         for (const [index, item] of result.entries()) {
           const messageContent = JSON.stringify(item);
 
-          await logMessageAsJson(
-            item,
-            "/home/vboxuser/repos/ai_signposting/ai_api/data/sample_option_messages.json"
-          );
+          // await logMessageAsJson(
+          //   item,
+          //   "/home/vboxuser/repos/ai_signposting/ai_api/data/sample_option_messages_local.json"
+          // );
           console.log("sending message:", messageContent);
           const message = createTextMessage(this.waId, messageContent);
           await sendMessage(message);
