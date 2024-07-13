@@ -108,40 +108,62 @@ class SignpostingFlow extends BaseFlow {
       await sendMessage(template);
     }
     if (flowStep === 4) {
-      const { location, category, page } = userSelection;
-      const { postcode, language } = this.userInfo; //eslint-disable-line
-      const tag = formatTag(category);
-      const pageSize = 5;
-      const location_choice = location.toLowerCase();
-      const dbResult = await selectOptions(
-        this.db,
-        tag,
-        location_choice,
-        page,
-        pageSize
-      );
-      console.log("Final options", dbResult);
-      const { result, remaining } = dbResult;
-      const moreOptionsAvailable = remaining >= pageSize;
-      for (const item of result) {
-        const messageContent = JSON.stringify(item);
-        console.log("sending message:", messageContent);
-        const message = createTextMessage(this.waId, messageContent);
+      const { location, category, page, endFlow } = userSelection;
+      if (endFlow) {
+        const message = this.createEndFlowMessage(this.waId);
         await sendMessage(message);
+        flowCompletionStatus = true;
+      } else {
+        const { postcode, language } = this.userInfo; //eslint-disable-line
+        const tag = formatTag(category);
+        const pageSize = 5;
+        const location_choice = location.toLowerCase();
+        const dbResult = await selectOptions(
+          this.db,
+          tag,
+          location_choice,
+          page,
+          pageSize
+        );
+        console.log("Final options", dbResult);
+        const { result, remaining } = dbResult;
+        const moreOptionsAvailable = remaining >= pageSize;
+        if (!moreOptionsAvailable) {
+          flowCompletionStatus = true;
+        }
+        for (const [index, item] of result.entries()) {
+          const messageContent = JSON.stringify(item);
+          console.log("sending message:", messageContent);
+          const message = createTextMessage(this.waId, messageContent);
+          await sendMessage(message);
+          if (index === result.length - 1) {
+            const lastMessage = this.createLastOptionMessage(
+              this.waId,
+              moreOptionsAvailable
+            );
+            await sendMessage(lastMessage);
+          }
+        }
       }
     }
     return flowCompletionStatus;
   }
-  async sendLastOptionMessage(recipient, moreOptionsAvailable) {
+  createLastOptionMessage(recipient, moreOptionsAvailable) {
     let message;
     if (moreOptionsAvailable) {
-      const contentSid = "HX31992901024acd003249c56f412fba4f";
+      const contentSid = "HX31992901024acd003249c56f412fba4f"; //TO-DO store hard coded ids somewhere
       message = createTemplateMessage(recipient, contentSid);
     } else {
       const text =
         "Thanks for using the service just now, please text 'hi' to search again";
       message = createTextMessage(recipient, text);
     }
+    return message;
+  }
+  createEndFlowMessage(recipient) {
+    const text =
+      "Thanks for using the service just now, please text 'hi' to search again";
+    const message = createTextMessage(recipient, text);
     return message;
   }
 }

@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
-
+const { FieldValue } = require("firebase-admin/firestore");
 async function createNewFlow(db, flowData, additionalProps = {}) {
   const flowId = uuidv4();
   const startTime = new Date().toISOString();
@@ -59,22 +59,37 @@ async function deleteFlowOnErr(db, userId, err) {
     return { message: "No documents found for the specified userId" };
   }
 }
-async function updateUserSelection(db, flowId, flowStep, selectionValue) {
+async function updateUserSelection(
+  db,
+  flowId,
+  flowStep,
+  selectionValue,
+  seeMoreOptionMessages
+) {
   const selectionNames = {
     2: "category",
     3: "location",
   };
   const flowRef = db.collection("flows").doc(flowId);
-  if (!selectionNames[flowStep]) {
-    console.log("update not needed");
-    return;
+  const runNextStep = !seeMoreOptionMessages.includes(selectionValue);
+  if (selectionValue === seeMoreOptionMessages[0]) {
+    await flowRef.update({
+      "userSelection.page": FieldValue.increment(1),
+    });
+  } else if (selectionValue === seeMoreOptionMessages[1]) {
+    await flowRef.update({
+      "userSelection.endFlow": true,
+    });
   }
-  await flowRef.update({
-    [`userSelection.${selectionNames[flowStep]}`]: selectionValue,
-  });
-  console.log(
-    `Document property update with values: ${selectionNames[flowStep]} : ${selectionValue}`
-  );
+  if (selectionNames[flowStep] && runNextStep) {
+    await flowRef.update({
+      [`userSelection.${selectionNames[flowStep]}`]: selectionValue,
+    });
+
+    console.log(
+      `Document property update with values: ${selectionNames[flowStep]} : ${selectionValue}`
+    );
+  }
   const updatedDoc = await flowRef.get();
 
   if (updatedDoc.exists) {

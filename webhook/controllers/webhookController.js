@@ -15,6 +15,7 @@ async function handleMessage(req, res, next) {
   const waId = body.WaId;
   const profileName = body.ProfileName;
   console.log("recieved message", body);
+  const seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
   try {
     const registeredUser = await getUser(db, waId);
     const userData = registeredUser || {
@@ -53,6 +54,7 @@ async function handleMessage(req, res, next) {
         {
           userSelection: {
             page: 1,
+            endFlow: false,
           },
         }
       );
@@ -69,15 +71,20 @@ async function handleMessage(req, res, next) {
       //check if a an active flow exists
       const currentFlow = await getCurrentFlow(firestore, userData);
       const currentFlowStep = currentFlow.flowStep;
-      messageData.flowStep = currentFlowStep + 1; //TO-DO: handle error here
       const flowName = currentFlow.flowName;
       const flowId = currentFlow.id;
+      if (!seeMoreOptionMessages.includes(body.Body)) {
+        messageData.flowStep = currentFlowStep + 1;
+      } else {
+        messageData.flowStep = currentFlowStep;
+      }
       if (flowName === "signposting") {
         const updatedDoc = await updateUserSelection(
           firestore,
           flowId,
           currentFlowStep,
-          body.Body
+          body.Body,
+          seeMoreOptionMessages
         );
         messageData.userSelection = updatedDoc?.userSelection;
       }
