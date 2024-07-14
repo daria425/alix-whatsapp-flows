@@ -5,11 +5,12 @@ const {
   deleteFlowOnErr,
   updateUserSelection,
 } = require("../helpers/firestore.helpers");
+const { PostRequestService } = require("../services/PostRequestService");
 const { api_base } = require("../config/api_base.config");
-const axios = require("axios");
 const { getUser, saveUser } = require("../helpers/database.helpers");
 const { firestore } = require("../config/firestore.config");
 async function handleMessage(req, res, next) {
+  const postRequestService = new PostRequestService(api_base);
   const db = req.app.locals.db;
   const body = JSON.parse(JSON.stringify(req.body));
   const waId = body.WaId;
@@ -35,14 +36,10 @@ async function handleMessage(req, res, next) {
         ...messageData,
         flowName: "onboarding",
       }); //save the initialization of the flow to a temp db
-      const response = await axios({
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "post",
-        url: `${api_base}flows/onboarding`,
-        data: messageData,
-      });
+      const response = await postRequestService.make_request(
+        "flows/onboarding",
+        messageData
+      );
       res.status(200).send(response.data);
     } else if (body.Body.toLowerCase() === "hi") {
       await createNewFlow(
@@ -58,14 +55,10 @@ async function handleMessage(req, res, next) {
           },
         }
       );
-      const response = await axios({
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "post",
-        url: `${api_base}flows/signposting`,
-        data: messageData,
-      });
+      const response = await postRequestService.make_request(
+        "flows/signposting",
+        messageData
+      );
       res.status(200).send(response.data);
     } else {
       //check if a an active flow exists
@@ -89,14 +82,10 @@ async function handleMessage(req, res, next) {
         messageData.userSelection = updatedDoc?.userSelection;
       }
       console.log("message to be sent", messageData);
-      const response = await axios({
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "post",
-        url: `${api_base}flows/${flowName}`,
-        data: messageData,
-      });
+      const response = await postRequestService.make_request(
+        `flows/${flowName}`,
+        messageData
+      );
       const flowCompletionStatus = response.data.flowCompletionStatus;
       if (flowCompletionStatus) {
         await deleteFlowOnCompletion(firestore, flowId);

@@ -92,7 +92,12 @@ class SignpostingFlow extends BaseFlow {
     };
   }
 
-  async handleFlowStep(flowStep, userSelection, supportOptionService) {
+  async handleFlowStep(
+    flowStep,
+    userSelection,
+    supportOptionService,
+    llmService
+  ) {
     console.log("user selection:", userSelection);
     let flowCompletionStatus = false;
     if (flowStep <= 3) {
@@ -123,14 +128,21 @@ class SignpostingFlow extends BaseFlow {
           location_choice,
           page,
           pageSize,
-          false
+          true
         );
-        console.log("Final options", dbResult);
         const { result, remaining } = dbResult;
         const moreOptionsAvailable = remaining >= pageSize;
         if (!moreOptionsAvailable) {
           flowCompletionStatus = true;
         }
+        const aiApiRequest = {
+          options: result,
+          postcode: postcode,
+          language: language,
+        };
+        console.log("sent to llm", JSON.stringify(aiApiRequest));
+        const response = await llmService.make_llm_request(aiApiRequest);
+        console.log(response.data);
         //TO-DO call LLM here with language, postcode
         for (const [index, item] of result.entries()) {
           const messageContent = JSON.stringify(item);

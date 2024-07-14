@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from .routes import llm
 app = FastAPI()
 
 origins=[
-  "http://localhost:5173", "https://local-directory-scraping.web.app"
+  "http://localhost:8080", "https://ai-signposting.nw.r.appspot.com"
 ]
 
 app.add_middleware(    
@@ -16,3 +17,6 @@ app.add_middleware(
 @app.get("/")
 def main():
     return {"message": "Hello World"}
+
+
+app.include_router(llm.router)

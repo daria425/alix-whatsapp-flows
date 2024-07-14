@@ -66,6 +66,9 @@ class VertexAI_Service(AI_Service):
         tools=tools,
 
 )
-        response_function_call_content = response.candidates[0].content.parts[0].to_dict()
-        organizations=response_function_call_content["function_call"]["args"]["organizations"]
-        print(organizations)
+        if use_tool:
+            response_function_call_content = response.candidates[0].content.parts[0].to_dict()
+            return response_function_call_content
+        else:
+            return response
+

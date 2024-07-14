@@ -280,9 +280,11 @@ class SupportOptionService {
     if (locationFunctions[location]) {
       const result = await locationFunctions[location](tag, page, pageSize);
       const remaining = result[0].remaining;
+      const resultPage = result[0].page;
       return {
         result: result[0].results,
         remaining: remaining,
+        page: resultPage,
       };
     }
   }

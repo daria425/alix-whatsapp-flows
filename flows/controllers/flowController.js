@@ -1,5 +1,7 @@
 const { OnboardingFlow, SignpostingFlow } = require("../services/Flows");
 const { SupportOptionService } = require("../services/SupportOptionService");
+const { api_base } = require("../config/llm_api_config");
+const { LLMService } = require("../services/LLMService");
 async function runOnboardingFlow(db, userInfo, flowStep, userMessage) {
   const onboardingFlow = new OnboardingFlow(db, userInfo, userMessage);
   const flowCompletionStatus = await onboardingFlow.handleFlowStep(flowStep);
@@ -13,13 +15,14 @@ async function runSignpostingFlow(
   userMessage,
   userSelection
 ) {
-  console.log(userMessage);
   const signpostingFlow = new SignpostingFlow(db, userInfo, userMessage);
   const supportOptionService = new SupportOptionService(db);
+  const llmService = new LLMService(api_base);
   const flowCompletionStatus = await signpostingFlow.handleFlowStep(
     flowStep,
     userSelection,
-    supportOptionService
+    supportOptionService,
+    llmService
   );
   return flowCompletionStatus;
 }
