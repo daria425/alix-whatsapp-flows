@@ -1,13 +1,14 @@
 from dotenv import load_dotenv
 import vertexai
 from abc import ABC, abstractmethod
+import json
 from vertexai.generative_models import (
     Content,
     FunctionDeclaration,
     Part,
     Tool, GenerativeModel
 )
-from config.vertexai_config import vertexai_project_location, vertex_ai_project_id
+from ..config.vertexai_config import vertexai_project_location, vertex_ai_project_id
 load_dotenv()
 
 
@@ -70,5 +71,25 @@ class VertexAI_Service(AI_Service):
             response_function_call_content = response.candidates[0].content.parts[0].to_dict()
             return response_function_call_content
         else:
-            return response
+            return response.text
+        
+    def process_messages(self, options, category):
+        model_responses=[]
+        for option in options:
+            input=json.dumps(option)
+            prompt=f""" 
+                This is a dictionary representing information on a support organization within the UK. 
+                 The organization has been categorized. The category is {category}.
+                Using all of the information, write a description of the organization. 
+                Make sure all details written in the dictionary are included. 
+                Mention the name first. Include any additional details if you have knowledge of them. Keep your answer in the range of 3 sentences.
+                Organization dictionary:
+                {input}
+                """
+            response=self.get_model_response(prompt, {"temperature":0.5})
+            model_responses.append(response)
+        return model_responses
+            
+
+
 

@@ -6,3 +6,4 @@ class RequestModel(BaseModel):
     options: List[Option]
     postcode: str
     language: str
+    category: str

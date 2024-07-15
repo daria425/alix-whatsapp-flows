@@ -139,13 +139,14 @@ class SignpostingFlow extends BaseFlow {
           options: result,
           postcode: postcode,
           language: language,
+          category: category,
         };
         console.log("sent to llm", JSON.stringify(aiApiRequest));
         const response = await llmService.make_llm_request(aiApiRequest);
-        console.log(response.data);
+        const llmResponse = response.data;
         //TO-DO call LLM here with language, postcode
-        for (const [index, item] of result.entries()) {
-          const messageContent = JSON.stringify(item);
+        for (const [index, item] of llmResponse.entries()) {
+          const messageContent = item;
 
           // await logMessageAsJson(
           //   item,
