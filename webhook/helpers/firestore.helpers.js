@@ -6,6 +6,17 @@ async function createNewFlow(db, flowData, additionalProps = {}) {
   const startTime = new Date().toISOString();
   const { flowName, userInfo, flowStep } = flowData;
   const userId = userInfo.WaId;
+  const existingFlowSnapshot = await db
+    .collection("flows")
+    .where("userId", "==", userId)
+    .get();
+  if (!existingFlowSnapshot.empty) {
+    const batch = db.batch();
+    existingFlowSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+  }
   const data = {
     startTime,
     flowName,

@@ -15,6 +15,12 @@ class BaseFlow {
     this.messageContent = userMessage?.Body;
     this.listId = userMessage?.ListId;
   }
+  async createErrorMessage(recipient) {
+    const text =
+      "An unexpected error occurred, please text 'hi' to search again";
+    const message = createTextMessage(recipient, text);
+    return message;
+  }
 }
 class OnboardingFlow extends BaseFlow {
   constructor(db, userInfo, userMessage) {
@@ -92,6 +98,19 @@ class SignpostingFlow extends BaseFlow {
     };
   }
 
+  async checkUserSelectionError(location, category, supportOptionService) {
+    const isValidLocation = [
+      "local only",
+      "national only",
+      "local and national",
+    ].includes(location.toLowerCase());
+    const validCategories = await supportOptionService.getTags();
+    const isValidCategory = validCategories.includes(category);
+    if (!isValidCategory || !isValidLocation) {
+      return true;
+    } else return false;
+  }
+
   async handleFlowStep(
     flowStep,
     userSelection,
@@ -119,7 +138,18 @@ class SignpostingFlow extends BaseFlow {
         await sendMessage(message);
         flowCompletionStatus = true;
       } else {
-        const { postcode, language } = this.userInfo; //eslint-disable-line
+        const error = await this.checkUserSelectionError(
+          location,
+          category,
+          supportOptionService
+        );
+        if (error) {
+          flowCompletionStatus = true;
+          const errorMessage = await this.createErrorMessage(this.waId);
+          await sendMessage(errorMessage);
+          return flowCompletionStatus;
+        }
+        const { postcode, language } = this.userInfo;
         const tag = formatTag(category);
         const pageSize = 5;
         const location_choice = location.toLowerCase();
@@ -131,6 +161,12 @@ class SignpostingFlow extends BaseFlow {
           true
         );
         const { result, remaining } = dbResult;
+        if (result.length < 1) {
+          flowCompletionStatus = true;
+          const message = this.createNoOptionsMessage(this.waId);
+          await sendMessage(message);
+          return flowCompletionStatus;
+        }
         const moreOptionsAvailable = remaining >= pageSize;
         if (!moreOptionsAvailable) {
           flowCompletionStatus = true;
@@ -147,11 +183,6 @@ class SignpostingFlow extends BaseFlow {
         //TO-DO call LLM here with language, postcode
         for (const [index, item] of llmResponse.entries()) {
           const messageContent = item;
-
-          // await logMessageAsJson(
-          //   item,
-          //   "/home/vboxuser/repos/ai_signposting/ai_api/data/sample_option_messages_local.json"
-          // );
           console.log("sending message:", messageContent);
           const message = createTextMessage(this.waId, messageContent);
           await sendMessage(message);
@@ -182,6 +213,12 @@ class SignpostingFlow extends BaseFlow {
   createEndFlowMessage(recipient) {
     const text =
       "Thanks for using the service just now, please text 'hi' to search again";
+    const message = createTextMessage(recipient, text);
+    return message;
+  }
+  createNoOptionsMessage(recipient) {
+    const text =
+      "There seems to be nothing in our database for your search right now, please text 'hi' to start a new search";
     const message = createTextMessage(recipient, text);
     return message;
   }

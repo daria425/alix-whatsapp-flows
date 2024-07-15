@@ -1,6 +1,6 @@
 const { OnboardingFlow, SignpostingFlow } = require("../services/Flows");
 const { SupportOptionService } = require("../services/SupportOptionService");
-const { api_base } = require("../config/llm_api_config");
+const { api_base } = require("../config/llm_api.config");
 const { LLMService } = require("../services/LLMService");
 async function runOnboardingFlow(db, userInfo, flowStep, userMessage) {
   const onboardingFlow = new OnboardingFlow(db, userInfo, userMessage);

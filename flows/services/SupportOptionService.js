@@ -18,6 +18,16 @@ class SupportOptionService {
     };
   }
 
+  async getTags() {
+    try {
+      const collection = this.db.collection("tags");
+      const allTags = await collection.distinct("Tag");
+      return allTags;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   async getAllLocalOptions(tag, page) {
     try {
       const foundOptions = await this.supportOptionsCollection.aggregate([
