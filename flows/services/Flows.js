@@ -27,26 +27,28 @@ class OnboardingFlow extends BaseFlow {
     super(db, userInfo, userMessage);
     this.onboardingTexts = {
       1: `Hello!\n\nWelcome to Alix Signposting.\n\nAlix signposts you to local and national help, starting in the region of Cornwall. You can find out more at https://www.projectalix.com/Cornwall\n\nLet's get started:\nPlease enter 'next' to continue.`,
-      2: `Step 1 of 4: To begin, what is your name?`, // update name
-      3: `Nice to meet you!\nStep 2 of 4: To ensure we have the right information, could you share the name of the organisation you work for?`, // update organization
-      4: `Step 3 of 4: Great, to better assist you could you let us know the postcode you will be seeking support around?`, // update postcode
-      6: `Thank you for sharing.\nBy continuing you agree to our privacy policy, which can be viewed here:\nhttps://www.projectalix.com/privacy\nDo you agree to proceed with assistance?\nPlease enter 'consent' to continue.`, // opted in, completed_onboarding = true
+      2: `Step 1 of 5: To begin, what is your name?`, // update name
+      3: `Nice to meet you!\nStep 2 of 5: To ensure we have the right information, could you share the name of the organisation you work for?`, // update organization
+      5: `Step 4 of 5: Great, to better assist you could you let us know the postcode you will be seeking support around?`,
+      7: `Thank you for sharing.\nBy continuing you agree to our privacy policy, which can be viewed here:\nhttps://www.projectalix.com/privacy\nDo you agree to proceed with assistance?\nPlease enter 'consent' to continue.`, // opted in, completed_onboarding = true
     };
   }
 
   async handleFlowStep(flowStep) {
     let flowCompletionStatus = false;
-    if (flowStep != 5) {
-      const text = this.onboardingTexts[flowStep] || "flow complete";
+    if (flowStep != 6 && flowStep != 4) {
+      const text =
+        this.onboardingTexts[flowStep] ||
+        "Thank you for registering with us. Please message 'hi' to begin a search";
       const message = createTextMessage(this.waId, text);
 
       if (flowStep === 3) {
         await this.updateUser({ "username": this.messageContent });
-      } else if (flowStep === 4) {
-        await this.updateUser({ "organization": this.messageContent });
-      } else if (flowStep === 6) {
-        await this.updateUser({ "language": this.messageContent });
+      } else if (flowStep === 5) {
+        await this.updateUser({ "region": this.messageContent });
       } else if (flowStep === 7) {
+        await this.updateUser({ "language": this.messageContent });
+      } else if (flowStep === 8) {
         await this.updateUser({
           "completed_onboarding": true,
           "opted_in": true,
@@ -55,10 +57,24 @@ class OnboardingFlow extends BaseFlow {
       }
       await sendMessage(message);
     } else {
-      const templateSid = await findTemplateSid("select_language", false);
-      const templateMessage = createTemplateMessage(this.waId, templateSid);
-      await this.updateUser({ "postcode": this.messageContent });
-      await sendMessage(templateMessage);
+      if (flowStep === 6) {
+        const templateSid = await findTemplateSid("select_language", false);
+        const templateMessage = createTemplateMessage(this.waId, templateSid);
+        await this.updateUser({ "postcode": this.messageContent });
+        await sendMessage(templateMessage);
+      } else if (flowStep === 4) {
+        const templateSid = await findTemplateSid("select_region", false);
+        const templateVariables = {
+          select_region_message: `Step 3 of 5: Could you let us know the region you will be seeking support around?`,
+        };
+        await this.updateUser({ "organization": this.messageContent });
+        const templateMessage = createTemplateMessage(
+          this.waId,
+          templateSid,
+          templateVariables
+        );
+        await sendMessage(templateMessage);
+      }
     }
     return flowCompletionStatus;
   }

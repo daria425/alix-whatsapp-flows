@@ -76,18 +76,20 @@ class VertexAI_Service(AI_Service):
     def process_messages(self, options, category):
         model_responses=[]
         for option in options:
+            print(option)
             input=json.dumps(option)
             prompt=f""" 
                 This is a dictionary representing information on a support organization within the UK. 
                  The organization has been categorized. The category is {category}.
-                Using all of the information, write a description of the organization. 
-                Make sure all details written in the dictionary are included. 
-                Mention the name first. Include any additional details if you have knowledge of them. Keep your answer in the range of 3 sentences.
+                write a concise and helpful description of the organization. Don't mention the website.
+                Mention the name first. Include any additional details if you have knowledge of them. Keep your answer in the range of 2 sentences.
                 Organization dictionary:
                 {input}
                 """
             response=self.get_model_response(prompt, {"temperature":0.5})
-            model_responses.append(response)
+            detail=f"""Website: {option["website"]}\nLocation: {option["location"]}"""
+            final_response=f"""{response}\n{detail}"""
+            model_responses.append(final_response)
         return model_responses
             
 
