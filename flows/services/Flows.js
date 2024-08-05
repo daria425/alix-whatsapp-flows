@@ -196,7 +196,9 @@ class SignpostingFlow extends BaseFlow {
         console.log("sent to llm", JSON.stringify(aiApiRequest));
         const response = await llmService.make_llm_request(aiApiRequest);
         const llmResponse = response.data;
-        //TO-DO call LLM here with language, postcode
+        const firstText = "Here are some support options:";
+        const firstMessage = createTextMessage(this.waId, firstText);
+        await sendMessage(firstMessage);
         for (const [index, item] of llmResponse.entries()) {
           const messageContent = item;
           console.log("sending message:", messageContent);
@@ -312,7 +314,6 @@ class EditDetailsFlow extends BaseFlow {
     return flowCompletionStatus;
   }
   async updateUser(updateData) {
-    // Assuming updateUser function exists and updates the user in the database
     await updateUser(this.db, this.waId, updateData);
   }
 }
