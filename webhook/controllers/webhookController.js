@@ -16,6 +16,7 @@ async function handleMessage(req, res, next) {
   const body = JSON.parse(JSON.stringify(req.body));
   const waId = body.WaId;
   const profileName = body.ProfileName;
+  const organizationNumber = body.To;
   console.log("recieved message", body);
   const seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
   const addUpdateMessages = ["Yes", "No thanks"];
@@ -33,7 +34,7 @@ async function handleMessage(req, res, next) {
     };
     if (!registeredUser || body.Body === "test") {
       //first check, any message where the user is not registered gets forwarded to the onboarding flow
-      await saveUser(db, userData);
+      await saveUser(db, userData, organizationNumber);
       await createNewFlow(firestore, {
         ...messageData,
         flowName: "onboarding",

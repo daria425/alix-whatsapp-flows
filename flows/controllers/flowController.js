@@ -4,22 +4,42 @@ const {
   EditDetailsFlow,
 } = require("../services/Flows");
 const { SupportOptionService } = require("../services/SupportOptionService");
+const { ContactModel } = require("../models/ContactModel");
 const { api_base } = require("../config/llm_api.config");
 const { LLMService } = require("../services/LLMService");
-async function runOnboardingFlow(db, userInfo, flowStep, userMessage) {
-  const onboardingFlow = new OnboardingFlow(db, userInfo, userMessage);
+async function runOnboardingFlow(
+  db,
+  controlRoomDb,
+  userInfo,
+  flowStep,
+  userMessage
+) {
+  const contactModel = new ContactModel(controlRoomDb);
+  const onboardingFlow = new OnboardingFlow(
+    db,
+    userInfo,
+    userMessage,
+    contactModel
+  );
   const flowCompletionStatus = await onboardingFlow.handleFlowStep(flowStep);
   return flowCompletionStatus;
 }
 
 async function runSignpostingFlow(
   db,
+  controlRoomDb,
   userInfo,
   flowStep,
   userMessage,
   userSelection
 ) {
-  const signpostingFlow = new SignpostingFlow(db, userInfo, userMessage);
+  const contactModel = new ContactModel(controlRoomDb);
+  const signpostingFlow = new SignpostingFlow(
+    db,
+    userInfo,
+    userMessage,
+    contactModel
+  );
   const supportOptionService = new SupportOptionService(db);
   const llmService = new LLMService(api_base);
   const flowCompletionStatus = await signpostingFlow.handleFlowStep(
@@ -33,12 +53,19 @@ async function runSignpostingFlow(
 
 async function runEditDetailsFlow(
   db,
+  controlRoomDb,
   userInfo,
   flowStep,
   userMessage,
   userDetailUpdate
 ) {
-  const editDetailsFlow = new EditDetailsFlow(db, userInfo, userMessage);
+  const contactModel = new ContactModel(controlRoomDb);
+  const editDetailsFlow = new EditDetailsFlow(
+    db,
+    userInfo,
+    userMessage,
+    contactModel
+  );
   const flowCompletionStatus = await editDetailsFlow.handleFlowStep(
     flowStep,
     userDetailUpdate
@@ -47,6 +74,7 @@ async function runEditDetailsFlow(
 }
 async function flowController(req, res, next) {
   const db = req.app.locals.db;
+  const controlRoomDb = req.app.locals.secondaryDb;
   let flowCompletionStatus;
   try {
     const { userInfo, message, flowStep } = req.body;
@@ -60,6 +88,7 @@ async function flowController(req, res, next) {
     if (flow === "onboarding") {
       flowCompletionStatus = await runOnboardingFlow(
         db,
+        controlRoomDb,
         userInfo,
         flowStep,
         message
@@ -68,6 +97,7 @@ async function flowController(req, res, next) {
       const userSelection = req.body.userSelection;
       flowCompletionStatus = await runSignpostingFlow(
         db,
+        controlRoomDb,
         userInfo,
         flowStep,
         message,
@@ -77,6 +107,7 @@ async function flowController(req, res, next) {
       const userDetailUpdate = req.body?.userDetailUpdate;
       flowCompletionStatus = await runEditDetailsFlow(
         db,
+        controlRoomDb,
         userInfo,
         flowStep,
         message,
