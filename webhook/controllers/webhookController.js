@@ -8,11 +8,11 @@ const {
 } = require("../helpers/firestore.helpers");
 const { PostRequestService } = require("../services/PostRequestService");
 const { api_base } = require("../config/api_base.config");
-const { getUser, saveUser } = require("../helpers/database.helpers");
+const { UserService } = require("../services/UserService");
 const { firestore } = require("../config/firestore.config");
 async function handleMessage(req, res, next) {
   const postRequestService = new PostRequestService(api_base);
-  const db = req.app.locals.db;
+  const userService = new UserService(req.app.locals.db);
   const body = JSON.parse(JSON.stringify(req.body));
   const waId = body.WaId;
   const profileName = body.ProfileName;
@@ -21,7 +21,7 @@ async function handleMessage(req, res, next) {
   const seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
   const addUpdateMessages = ["Yes", "No thanks"];
   try {
-    const registeredUser = await getUser(db, waId);
+    const registeredUser = await userService.getUser(waId);
     const userData = registeredUser || {
       "WaId": waId,
       "ProfileName": profileName,
@@ -34,7 +34,7 @@ async function handleMessage(req, res, next) {
     };
     if (!registeredUser || body.Body === "test") {
       //first check, any message where the user is not registered gets forwarded to the onboarding flow
-      await saveUser(db, userData, organizationNumber);
+      await userService.saveUser(userData, organizationNumber);
       await createNewFlow(firestore, {
         ...messageData,
         flowName: "onboarding",
