@@ -66,7 +66,8 @@ class MessageHandlerService {
     const messageData = this.createMessageData(userData, flowName, 1);
     await createNewFlow(firestore, messageData, extraData);
     const response = await this.postRequestService.make_request(
-      `flows/${flowName}`
+      `flows/${flowName}`,
+      messageData
     );
     this.res.status(200).send(response.data);
   }
@@ -95,10 +96,12 @@ class MessageHandlerService {
   async handleExistingFlow(userData) {
     const currentFlow = await getCurrentFlow(firestore, userData);
     const { flowName, flowStep, id: flowId } = currentFlow;
+    console.log("flow step", flowStep);
     let updatedFlowStep = flowStep;
     if (!this.seeMoreOptionMessages.includes(this.body.Body)) {
       updatedFlowStep += 1;
     }
+    console.log("updated flow step", updatedFlowStep);
     const messageData = this.createMessageData(
       userData,
       flowName,
@@ -154,3 +157,7 @@ class MessageHandlerService {
     this.res.status(200).send(response.data);
   }
 }
+
+module.exports = {
+  MessageHandlerService,
+};

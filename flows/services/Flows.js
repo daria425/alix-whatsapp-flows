@@ -149,7 +149,7 @@ class SignpostingFlow extends BaseFlow {
       );
       await sendMessage(template);
     }
-    if (flowStep === 4) {
+    if (flowStep >= 4) {
       const { location, category, page, endFlow } = userSelection;
       if (endFlow) {
         const message = this.createEndFlowMessage(this.waId);
