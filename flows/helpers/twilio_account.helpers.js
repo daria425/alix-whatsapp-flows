@@ -25,7 +25,10 @@ async function findTemplateSid(templateName, convertTemplate = true) {
       (template) => template.friendly_name === searchableTemplateName
     );
     if (foundTemplate) {
-      return foundTemplate.sid;
+      return {
+        templateSid: foundTemplate.sid,
+        templateName: searchableTemplateName,
+      };
     }
   } catch (err) {
     console.log(err);
@@ -35,4 +38,5 @@ async function findTemplateSid(templateName, convertTemplate = true) {
 
 module.exports = {
   findTemplateSid,
+  listTemplates,
 };

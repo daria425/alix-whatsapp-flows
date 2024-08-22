@@ -5,6 +5,7 @@ const createTextMessage = (waId, textContent) => {
     body: textContent,
     to: `whatsapp:+${waId}`,
   };
+  console.log("to save", message);
   return message;
 };
 
@@ -16,6 +17,7 @@ const createTemplateMessage = (waId, contentSid, templateVariables) => {
     to: `whatsapp:+${waId}`,
     // messagingServiceSid: messagingServiceSid,
   };
+  console.log("to save", message);
   return message;
 };
 module.exports = {

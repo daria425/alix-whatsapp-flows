@@ -1,8 +1,9 @@
-class UserService {
+class DatabaseService {
   constructor(db) {
     this.db = db;
     this.contactCollection = this.db.collection("contacts");
     this.organizationCollection = this.db.collection("organizations");
+    this.messagesCollection = this.db.collection("messages");
   }
 
   async getOrganization(organizationNumber) {
@@ -72,6 +73,18 @@ class UserService {
       throw err; // Consider re-throwing for higher-level error handling
     }
   }
+  async saveMessage(message) {
+    try {
+      const contact = await this.getUser(message.WaId);
+      await this.messagesCollection.insertOne({
+        ...message,
+        ContactId: contact._id,
+      });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  }
   async registerFlowCompletion(recipient, incrementDoc) {
     try {
       await this.contactCollection.findOneAndUpdate(
@@ -87,4 +100,4 @@ class UserService {
   }
 }
 
-module.exports = { UserService };
+module.exports = { DatabaseService };

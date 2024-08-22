@@ -18,7 +18,7 @@ function convertTemplateName(templateName) {
 }
 
 function formatContact(contact) {
-  return contact.replace("whatsapp:", "");
+  return contact.replace("whatsapp:+", "");
 }
 
 function formatButtonId(buttonPayload) {

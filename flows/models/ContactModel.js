@@ -1,6 +1,8 @@
 class ContactModel {
-  constructor(db) {
+  constructor(db, messageStartTime) {
     this.collection = db.collection("contacts");
+    this.messageCollection = db.collection("messages");
+    this.messageStartTime = new Date(messageStartTime);
   }
   async saveContact(contactData) {
     try {
@@ -52,6 +54,16 @@ class ContactModel {
     } catch (err) {
       console.log(err);
     }
+  }
+  async saveContactMessage(recipient, message) {
+    const contact = await this.getContact(recipient);
+    const messageToSave = {
+      ...message,
+      OrganizationId: contact.organizationId,
+      ContactId: contact._id,
+      ResponseTime: new Date() - this.messageStartTime,
+    };
+    await this.messageCollection.insertOne(messageToSave);
   }
 }
 

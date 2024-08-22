@@ -1,6 +1,5 @@
 .env
-testMessages.json
+logs/
 node_modules/
-testUser.json
 app.yaml
 .gcloudignore
