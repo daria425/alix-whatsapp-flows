@@ -62,7 +62,7 @@ class SupportOptionService {
       ]);
       const taggedOptions = await foundOptions.toArray();
       taggedOptions[0].page = page;
-      const totalCount = taggedOptions[0].meta[0].totalCount;
+      const totalCount = taggedOptions[0].meta[0]?.totalCount || 0;
       taggedOptions[0].remaining = totalCount - pageSize * page;
       return taggedOptions;
     } catch (err) {
@@ -98,7 +98,7 @@ class SupportOptionService {
       ]);
       const taggedOptions = await foundOptions.toArray();
       taggedOptions[0].page = page;
-      const totalCount = taggedOptions[0].meta[0].totalCount;
+      const totalCount = taggedOptions[0].meta[0]?.totalCount || 0;
       taggedOptions[0].remaining = totalCount - pageSize * page;
       return taggedOptions;
     } catch (err) {
@@ -151,7 +151,7 @@ class SupportOptionService {
       ]);
       const taggedOptions = await foundOptions.toArray();
       taggedOptions[0].page = page;
-      const totalCount = taggedOptions[0].meta[0].totalCount;
+      const totalCount = taggedOptions[0].meta[0]?.totalCount || 0;
       taggedOptions[0].remaining = totalCount - pageSize * page;
       return taggedOptions;
     } catch (err) {

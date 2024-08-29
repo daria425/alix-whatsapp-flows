@@ -2,7 +2,7 @@ require("dotenv").config({
   path: "/home/vboxuser/repos/ai_signposting/webhook/.env",
 });
 const { MongoClient } = require("mongodb");
-const uri = process.env.MONGO_URI;
+const uri = process.env.TARGET_MONGO_URI;
 
 const client = new MongoClient(uri);
 
@@ -29,4 +29,96 @@ async function addLocation(client, location) {
   }
 }
 
-addLocation(client, "Cornwall");
+async function changeFieldToDouble(client, collectionName) {
+  try {
+    await client.connect();
+    const db = client.db("signposting_db");
+    const collection = db.collection(collectionName);
+    await collection
+      .aggregate([
+        {
+          $addFields: {
+            convertedFields: {
+              $map: {
+                input: { $objectToArray: "$$ROOT" },
+                as: "field",
+                in: {
+                  k: "$$field.k",
+                  v: {
+                    $cond: {
+                      if: { $eq: [{ $type: "$$field.v" }, "decimal"] },
+                      then: { $toDouble: "$$field.v" },
+                      else: "$$field.v",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: { $arrayToObject: "$convertedFields" },
+          },
+        },
+        {
+          $merge: {
+            into: collectionName, // replace with your collection name
+            whenMatched: "replace",
+          },
+        },
+      ])
+      .toArray();
+  } catch (err) {
+    console.error(err);
+  } finally {
+    await client.close();
+  }
+}
+
+async function changeFieldToStr(client, collectionName) {
+  try {
+    await client.connect();
+    const db = client.db("signposting_db");
+    const collection = db.collection(collectionName);
+    await collection
+      .aggregate([
+        {
+          $addFields: {
+            convertedFields: {
+              $map: {
+                input: { $objectToArray: "$$ROOT" },
+                as: "field",
+                in: {
+                  k: "$$field.k",
+                  v: {
+                    $cond: {
+                      if: { $eq: [{ $type: "$$field.v" }, "int64"] },
+                      then: { $toString: "$$field.v" },
+                      else: "$$field.v",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: { $arrayToObject: "$convertedFields" },
+          },
+        },
+        {
+          $merge: {
+            into: collectionName, // replace with your collection name
+            whenMatched: "replace",
+          },
+        },
+      ])
+      .toArray();
+  } catch (err) {
+    console.error(err);
+  } finally {
+    await client.close();
+  }
+}

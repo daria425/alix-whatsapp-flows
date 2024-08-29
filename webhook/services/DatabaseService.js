@@ -54,6 +54,7 @@ class DatabaseService {
         "WaId": userData.WaId,
         "ProfileName": userData.ProfileName,
         "organizationId": organization._id,
+        "CreatedAt": new Date(),
       });
 
       const insertedId = result.insertedId;

@@ -258,7 +258,7 @@ class SignpostingFlow extends BaseFlow {
           await sendMessage(message);
           return flowCompletionStatus;
         }
-        const moreOptionsAvailable = remaining >= pageSize;
+        const moreOptionsAvailable = remaining >= 1;
         if (!moreOptionsAvailable) {
           flowCompletionStatus = true;
         }
@@ -305,7 +305,7 @@ class SignpostingFlow extends BaseFlow {
       const { templateSid, templateName } = await findTemplateSid(
         "see_more_options",
         false
-      ); //TO-DO store hard coded ids somewhere
+      );
       lastMessage = createTemplateMessage(recipient, templateSid);
       searchableTemplateName = templateName;
     } else {

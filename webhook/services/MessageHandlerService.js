@@ -22,6 +22,7 @@ class MessageHandlerService {
     this.profileName = this.body.ProfileName;
     this.organizationNumber = this.body.To;
     this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
+
     this.addUpdateMessages = ["Yes", "No thanks"];
     this.res = res;
   }
@@ -160,7 +161,7 @@ class MessageHandlerService {
       flowId,
       currentFlowStep,
       this.body.Body,
-      this.seeMoreOptionMessages
+      this.addUpdateMessages
     );
     return updatedDoc?.userDetailUpdate;
   }
