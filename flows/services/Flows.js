@@ -3,6 +3,7 @@ const {
   createTemplateMessage,
 } = require("../helpers/messages.helpers");
 const { formatTag } = require("../helpers/format.helpers");
+const { generateProfileColor } = require("../utils/generateProfileColor");
 const { sendMessage } = require("../helpers/twilio.helpers");
 const { findTemplateSid } = require("../helpers/twilio_account.helpers");
 
@@ -70,7 +71,7 @@ class OnboardingFlow extends BaseFlow {
 
   async handleFlowStep(flowStep) {
     let flowCompletionStatus = false;
-    if (flowStep != 6 && flowStep != 4) {
+    if (flowStep != 6 && flowStep != 4 && flowStep != 7) {
       const text =
         this.onboardingTexts[flowStep] ||
         "Thank you for registering with us. Please message 'hi' to begin a search";
@@ -80,12 +81,11 @@ class OnboardingFlow extends BaseFlow {
         await this.updateUser({ "username": this.messageContent });
       } else if (flowStep === 5) {
         await this.updateUser({ "region": this.messageContent });
-      } else if (flowStep === 7) {
-        await this.updateUser({ "language": this.messageContent });
       } else if (flowStep === 8) {
         await this.updateUser({
           "completed_onboarding": true,
           "opted_in": true,
+          "profileColor": generateProfileColor(),
         });
         flowCompletionStatus = true;
       }
@@ -114,6 +114,26 @@ class OnboardingFlow extends BaseFlow {
           select_region_message: `Step 3 of 5: Could you let us know the region you will be seeking support around?`,
         };
         await this.updateUser({ "organization": this.messageContent });
+        const templateMessage = createTemplateMessage(
+          this.WaId,
+          templateSid,
+          templateVariables
+        );
+        await this.saveResponseMessage(
+          templateMessage,
+          this.flowName,
+          templateName
+        );
+        await sendMessage(templateMessage);
+      } else if (flowStep == 7) {
+        const { templateSid, templateName } = await findTemplateSid(
+          "consent_to_privacy",
+          false
+        );
+        const templateVariables = {
+          consent_message: `Thank you for sharing.\nBy continuing you agree to our privacy policy, which can be viewed here:\nhttps://www.projectalix.com/privacy\nDo you agree to proceed with assistance?\nPlease press 'consent' to continue.`,
+        };
+        await this.updateUser({ "language": this.messageContent });
         const templateMessage = createTemplateMessage(
           this.WaId,
           templateSid,
