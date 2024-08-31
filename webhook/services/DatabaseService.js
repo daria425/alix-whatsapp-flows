@@ -55,6 +55,7 @@ class DatabaseService {
         "ProfileName": userData.ProfileName,
         "organizationId": organization._id,
         "CreatedAt": new Date(),
+        "LastSeenAt": new Date(),
       });
 
       const insertedId = result.insertedId;
