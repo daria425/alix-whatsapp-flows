@@ -60,6 +60,30 @@ class BaseFlow {
       },
     });
   }
+  async saveAndSendTextMessage(message, flowName) {
+    const insertedId = await this.saveResponseMessage(message, flowName);
+    const sid = await sendMessage(message);
+    await this.updateResponseMessage(insertedId, sid);
+  }
+
+  async createAndSendTemplateMessage(templateKey, templateVariables, flowName) {
+    const { templateSid, templateName } = await findTemplateSid(
+      templateKey,
+      false
+    );
+    const templateMessage = createTemplateMessage(
+      this.WaId,
+      templateSid,
+      templateVariables
+    );
+    const insertedId = await this.saveResponseMessage(
+      templateMessage,
+      flowName,
+      templateName
+    );
+    const sid = await sendMessage(templateMessage);
+    await this.updateResponseMessage(insertedId, sid);
+  }
 }
 
 class OnboardingFlow extends BaseFlow {
