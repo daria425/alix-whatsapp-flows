@@ -64,7 +64,13 @@ class ContactModel {
       ContactId: contact._id,
       ResponseTime: new Date() - this.messageStartTime,
     };
-    await this.messageCollection.insertOne(messageToSave);
+    const insertedMessage = await this.messageCollection.insertOne(
+      messageToSave
+    );
+    return insertedMessage.insertedId;
+  }
+  async updateContactMessage(messageId, update) {
+    await this.messageCollection.findOneAndUpdate({ "_id": messageId }, update);
   }
 }
 

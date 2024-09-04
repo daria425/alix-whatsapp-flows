@@ -114,6 +114,17 @@ class DatabaseService {
       throw err;
     }
   }
+  async updateMessageStatus(messageSid, status) {
+    try {
+      await this.messagesCollection.findOneAndUpdate(
+        { MessageSid: messageSid },
+        { $set: { Status: status } }
+      );
+      console.log(`Message status updated to ${status}`);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 }
 
 module.exports = { DatabaseService };

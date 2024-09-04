@@ -2,7 +2,7 @@ require("dotenv").config({
   path: "/home/vboxuser/repos/ai_signposting/webhook/.env",
 });
 const { MongoClient } = require("mongodb");
-const uri = process.env.TARGET_MONGO_URI;
+const uri = process.env.MONGO_URI;
 
 const client = new MongoClient(uri);
 
@@ -122,3 +122,25 @@ async function changeFieldToStr(client, collectionName) {
     await client.close();
   }
 }
+
+async function addField(client, dbName, collectionName, fieldToAdd) {
+  try {
+    await client.connect();
+    const db = client.db(dbName);
+    const collection = db.collection(collectionName);
+    await collection.updateMany(
+      {},
+      {
+        "$set": fieldToAdd,
+      }
+    );
+  } catch (err) {
+    console.error(err);
+  } finally {
+    await client.close();
+  }
+}
+
+// addField(client, "controlRoomDB", "messages", {
+//   "sid": null
+// })
