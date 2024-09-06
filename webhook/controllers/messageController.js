@@ -1,8 +1,18 @@
-const { MessageHandlerService } = require("../services/MessageHandlerService");
+const {
+  MessageHandlerService,
+  FlowTriggerService,
+} = require("../services/MessageHandlerService");
 const { firestore } = require("../config/firestore.config");
 async function handleMessage(req, res, next) {
-  const messageHandler = new MessageHandlerService(req, res, firestore);
-  await messageHandler.handle();
+  try {
+    console.log(req.body);
+    const messageHandler = req.headers["client-side-trigger"]
+      ? new FlowTriggerService(req, res, req.body.organizationNumber, firestore)
+      : new MessageHandlerService(req, res, req.body.To, firestore);
+    await messageHandler.handle();
+  } catch (err) {
+    next(err);
+  }
 }
 module.exports = {
   handleMessage,

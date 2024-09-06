@@ -1,4 +1,5 @@
 const { format } = require("date-fns");
+const { ObjectId } = require("mongodb");
 class DatabaseService {
   constructor(db) {
     this.db = db;
@@ -6,6 +7,7 @@ class DatabaseService {
     this.organizationCollection = this.db.collection("organizations");
     this.messagesCollection = this.db.collection("messages");
     this.completedFlowsCollection = this.db.collection("completed_flows");
+    this.availableFlowsCollection = this.db.collection("flows");
   }
 
   async getOrganization(organizationNumber) {
@@ -121,6 +123,18 @@ class DatabaseService {
         { $set: { Status: status } }
       );
       console.log(`Message status updated to ${status}`);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  async checkFlow(flowId, organizationId) {
+    try {
+      console.log(flowId);
+      const isEnabled = await this.organizationCollection.findOne({
+        _id: organizationId,
+        "enabledFlowIds": new ObjectId(flowId),
+      });
+      return isEnabled;
     } catch (err) {
       console.error(err);
     }

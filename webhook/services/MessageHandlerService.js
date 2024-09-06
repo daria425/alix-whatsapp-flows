@@ -11,31 +11,42 @@ const { PostRequestService } = require("./PostRequestService");
 const { api_base } = require("../config/api_base.config");
 const { DatabaseService } = require("./DatabaseService");
 
-class MessageHandlerService {
-  constructor(req, res, firestore) {
+class BaseMessageHandler {
+  constructor(req, res, organizationNumber, firestore) {
     this.postRequestService = new PostRequestService(api_base);
     this.databaseService = new DatabaseService(req.app.locals.db);
+    this.organizationNumber = organizationNumber;
     this.firestore = firestore;
-    this.body = JSON.parse(JSON.stringify(req.body));
-    this.messageType = this.body.MessageType;
-    this.WaId = this.body.WaId;
-    this.profileName = this.body.ProfileName;
-    this.organizationNumber = this.body.To;
-    this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
-
-    this.addUpdateMessages = ["Yes", "No thanks"];
+    this.body = req.body;
     this.res = res;
+  }
+  createMessageData(userData, flowName, flowStep) {
+    return {
+      userInfo: userData,
+      organizationPhoneNumber: this.organizationNumber,
+      message: this.body,
+      flowName,
+      flowStep,
+      startTime: new Date(),
+    };
+  }
+}
+class MessageHandlerService extends BaseMessageHandler {
+  constructor(req, res, organizationNumber, firestore) {
+    super(req, res, organizationNumber, firestore);
+    this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
+    this.addUpdateMessages = ["Yes", "No thanks"];
   }
 
   async handle() {
     try {
-      const registeredUser = await this.databaseService.getUser(this.WaId);
+      const registeredUser = await this.databaseService.getUser(this.body.WaId);
       const organization = await this.databaseService.getOrganization(
         this.organizationNumber
       );
       const userData = registeredUser || {
-        "WaId": this.WaId,
-        "ProfileName": this.profileName,
+        "WaId": this.body.WaId,
+        "ProfileName": this.body.ProfileName,
       };
       const messageToSave = {
         OrganizationId: organization._id,
@@ -44,7 +55,7 @@ class MessageHandlerService {
         Direction: "inbound",
         Status: "recieved",
       };
-
+      console.log(this.body);
       if (!registeredUser || this.body.Body === "test") {
         await this.onboardUser(userData, messageToSave);
       } else if (this.isGreeting()) {
@@ -56,7 +67,7 @@ class MessageHandlerService {
       }
     } catch (err) {
       console.error(err);
-      await deleteFlowOnErr(this.firestore, this.WaId, err);
+      await deleteFlowOnErr(this.firestore, this.body.WaId, err);
       this.res.status(500).send(err);
     }
   }
@@ -68,16 +79,6 @@ class MessageHandlerService {
     return this.body.Body.toLowerCase().trim() === "edit details";
   }
 
-  createMessageData(userData, flowName, flowStep) {
-    return {
-      userInfo: userData,
-      organizationPhoneNumber: this.organizationNumber,
-      message: this.body,
-      flowName,
-      flowStep,
-      startTime: new Date(),
-    };
-  }
   async startFlow(userData, messageToSave, flowName, extraData = {}) {
     const messageData = this.createMessageData(userData, flowName, 1);
     await createNewFlow(this.firestore, messageData, extraData);
@@ -192,6 +193,46 @@ class MessageHandlerService {
   }
 }
 
+class FlowTriggerService extends BaseMessageHandler {
+  constructor(req, res, organizationNumber, firestore) {
+    super(req, res, organizationNumber, firestore);
+    this.flow = this.body.flow;
+  }
+
+  async handle() {
+    const registeredUser = await this.databaseService.getUser(this.body.WaId);
+    const organization = await this.databaseService.getOrganization(
+      this.organizationNumber
+    );
+    const isEnabled = await this.databaseService.checkFlow(
+      this.flow._id,
+      organization._id
+    );
+    if (!isEnabled) {
+      this.res.status(403).send("Flow not enabled for this organization");
+      return;
+    }
+    const userData = registeredUser || {
+      "WaId": this.body.WaId,
+      "ProfileName": this.body.ProfileName,
+    };
+    if (this.body.flowName === "onboarding") {
+      await this.databaseService.saveUser(userData);
+    }
+    await this.startFlow(userData, this.flow.name);
+  }
+  async startFlow(userData, flowName, extraData = {}) {
+    const messageData = this.createMessageData(userData, flowName, 1);
+    await createNewFlow(this.firestore, messageData, extraData);
+    const response = await this.postRequestService.make_request(
+      `flows/${flowName}`,
+      messageData
+    );
+    this.res.status(200).send(response.data);
+  }
+}
+
 module.exports = {
+  FlowTriggerService,
   MessageHandlerService,
 };

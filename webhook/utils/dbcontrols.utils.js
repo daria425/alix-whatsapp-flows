@@ -141,6 +141,35 @@ async function addField(client, dbName, collectionName, fieldToAdd) {
   }
 }
 
-// addField(client, "controlRoomDB", "messages", {
-//   "sid": null
-// })
+async function addFlows(client, organizationNumber, flowNames) {
+  try {
+    await client.connect();
+    const db = client.db("controlRoomDB");
+    const organizationCollection = db.collection("organizations");
+    const flowsCollection = db.collection("flows");
+    const flows = await flowsCollection
+      .find({ name: { $in: flowNames } })
+      .toArray();
+    console.log(flows);
+    const flowIds = flows.map((flow) => flow._id);
+    await organizationCollection.findOneAndUpdate(
+      { organizationPhoneNumber: organizationNumber },
+      {
+        $set: {
+          enabledFlowIds: flowIds,
+        },
+      }
+    );
+  } catch (err) {
+    console.error(err);
+  } finally {
+    await client.close();
+  }
+}
+
+addFlows(client, "whatsapp:+447462582640", [
+  "edit-details",
+  "letter-translation",
+  "onboarding",
+  "signposting",
+]);

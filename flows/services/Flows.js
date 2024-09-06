@@ -109,10 +109,7 @@ class OnboardingFlow extends BaseFlow {
     let flowCompletionStatus = false;
     switch (flowStep) {
       case 1: {
-        await this.handleTemplateMessage("onboarding_welcome", {
-          onboarding_welcome_message:
-            "Hello!\n\nWelcome to Alix Signposting.\n\nAlix signposts you to local and national help, starting in the region of Cornwall. You can find out more at https://www.projectalix.com/Cornwall\n\nLet's get started:\nPlease press 'next' to continue.",
-        });
+        await this.handleTemplateMessage("onboarding_welcome");
         break;
       }
       case 2: {
