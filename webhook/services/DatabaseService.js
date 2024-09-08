@@ -1,5 +1,4 @@
 const { format } = require("date-fns");
-const { ObjectId } = require("mongodb");
 class DatabaseService {
   constructor(db) {
     this.db = db;
@@ -7,6 +6,7 @@ class DatabaseService {
     this.organizationCollection = this.db.collection("organizations");
     this.messagesCollection = this.db.collection("messages");
     this.completedFlowsCollection = this.db.collection("completed_flows");
+    this.sentFlowsCollection = this.db.collection("sent_flows");
     this.availableFlowsCollection = this.db.collection("flows");
   }
 
@@ -127,17 +127,9 @@ class DatabaseService {
       console.error(err);
     }
   }
-  async checkFlow(flowId, organizationId) {
-    try {
-      console.log(flowId);
-      const isEnabled = await this.organizationCollection.findOne({
-        _id: organizationId,
-        sendableFlows: new ObjectId(flowId),
-      });
-      return isEnabled;
-    } catch (err) {
-      console.error(err);
-    }
+
+  async saveTriggeredFlow(flow) {
+    await this.sentFlowsCollection.insertOne(flow);
   }
 }
 

@@ -20,12 +20,13 @@ class BaseMessageHandler {
     this.body = req.body;
     this.res = res;
   }
-  createMessageData(userData, flowName, flowStep) {
+  createMessageData(userData, flowName, flowStep, clientSideTriggered) {
     return {
       userInfo: userData,
       organizationPhoneNumber: this.organizationNumber,
       message: this.body,
       flowName,
+      clientSideTriggered,
       flowStep,
       startTime: new Date(),
     };
@@ -80,7 +81,7 @@ class MessageHandlerService extends BaseMessageHandler {
   }
 
   async startFlow(userData, messageToSave, flowName, extraData = {}) {
-    const messageData = this.createMessageData(userData, flowName, 1);
+    const messageData = this.createMessageData(userData, flowName, 1, false);
     await createNewFlow(this.firestore, messageData, extraData);
     const response = await this.postRequestService.make_request(
       `flows/${flowName}`,
@@ -201,14 +202,8 @@ class FlowTriggerService extends BaseMessageHandler {
 
   async handle() {
     const registeredUser = await this.databaseService.getUser(this.body.WaId);
-    const organization = await this.databaseService.getOrganization(
-      this.organizationNumber
-    );
-    const isEnabled = await this.databaseService.checkFlow(
-      this.flow._id,
-      organization._id
-    );
-    if (!isEnabled) {
+
+    if (!this.flow.isSendable) {
       this.res.status(403).send("Flow not enabled for this organization");
       return;
     }
@@ -222,7 +217,7 @@ class FlowTriggerService extends BaseMessageHandler {
     await this.startFlow(userData, this.flow.name);
   }
   async startFlow(userData, flowName, extraData = {}) {
-    const messageData = this.createMessageData(userData, flowName, 1);
+    const messageData = this.createMessageData(userData, flowName, 1, true);
     await createNewFlow(this.firestore, messageData, extraData);
     const response = await this.postRequestService.make_request(
       `flows/${flowName}`,

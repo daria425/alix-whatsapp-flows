@@ -166,11 +166,3 @@ async function addFlows(client, organizationNumber, flowNames) {
     await client.close();
   }
 }
-
-addFlows(client, "whatsapp:+447462582640", [
-  "edit-details",
-  "letter-translation",
-  "onboarding",
-  "signposting",
-  "survey",
-]);

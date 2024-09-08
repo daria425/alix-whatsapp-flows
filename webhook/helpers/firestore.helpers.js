@@ -4,7 +4,7 @@ async function createNewFlow(db, flowData, additionalProps = {}) {
   try {
     const flowId = uuidv4();
     const startTime = new Date().toISOString();
-    const { flowName, userInfo, flowStep } = flowData;
+    const { flowName, userInfo, flowStep, clientSideTriggered } = flowData;
     const userId = userInfo.WaId;
     const existingFlowSnapshot = await db
       .collection("flows")
@@ -22,6 +22,7 @@ async function createNewFlow(db, flowData, additionalProps = {}) {
       flowName,
       userId,
       flowStep,
+      clientSideTriggered,
       ...additionalProps,
     };
     await db.collection("flows").doc(flowId).set(data);
