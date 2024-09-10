@@ -118,10 +118,13 @@ class DatabaseService {
   }
   async updateMessageStatus(messageSid, status) {
     try {
-      await this.messagesCollection.findOneAndUpdate(
+      const updatedMessage = await this.messagesCollection.findOneAndUpdate(
         { MessageSid: messageSid },
         { $set: { Status: status } }
       );
+      if (updatedMessage.clientSideTriggered) {
+        await this.updateFlow(updatedMessage.trackedFlowId, status);
+      }
       console.log(`Message status updated to ${status}`);
     } catch (err) {
       console.error(err);

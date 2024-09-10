@@ -23,6 +23,7 @@ class BaseFlow {
     this.contactModel = contactModel;
     this.organizationPhoneNumber = organizationPhoneNumber;
     this.trackedFlowId = userMessage.trackedFlowId;
+    this.clientSideTriggered = userMessage.clientSideTriggered;
   }
 
   async updateUser(updateData) {
@@ -38,6 +39,7 @@ class BaseFlow {
   async saveResponseMessage(message, flowName, templateName) {
     //OUTBOUND MESSAGE
     const messageToSave = {
+      clientSideTriggered: this.clientSideTriggered,
       trackedFlowId: this.trackedFlowId,
       Body: message?.body ?? null,
       To: `whatsapp:+${this.WaId}`,

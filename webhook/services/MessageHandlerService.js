@@ -13,19 +13,24 @@ const { api_base } = require("../config/api_base.config");
 const { DatabaseService } = require("./DatabaseService");
 
 class BaseMessageHandler {
-  constructor(req, res, organizationNumber, firestore) {
+  constructor(req, res, organizationNumber, firestore, clientSideTriggered) {
     this.postRequestService = new PostRequestService(api_base);
     this.databaseService = new DatabaseService(req.app.locals.db);
     this.organizationNumber = organizationNumber;
     this.firestore = firestore;
     this.body = req.body;
     this.res = res;
+    this.clientSideTriggered = clientSideTriggered;
   }
   createMessageData(userData, flowName, trackedFlowId, flowStep) {
     return {
       userInfo: userData,
       organizationPhoneNumber: this.organizationNumber,
-      message: { ...this.body, trackedFlowId },
+      message: {
+        ...this.body,
+        trackedFlowId,
+        clientSideTriggered: this.clientSideTriggered,
+      },
       flowName,
       flowStep,
       startTime: new Date(),
@@ -33,8 +38,8 @@ class BaseMessageHandler {
   }
 }
 class MessageHandlerService extends BaseMessageHandler {
-  constructor(req, res, organizationNumber, firestore) {
-    super(req, res, organizationNumber, firestore);
+  constructor(req, res, organizationNumber, firestore, clientSideTriggered) {
+    super(req, res, organizationNumber, firestore, clientSideTriggered);
     this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
     this.addUpdateMessages = ["Yes", "No thanks"];
   }
@@ -212,8 +217,8 @@ class MessageHandlerService extends BaseMessageHandler {
 }
 
 class FlowTriggerService extends BaseMessageHandler {
-  constructor(req, res, organizationNumber, firestore) {
-    super(req, res, organizationNumber, firestore);
+  constructor(req, res, organizationNumber, firestore, clientSideTriggered) {
+    super(req, res, organizationNumber, firestore, clientSideTriggered);
     this.flow = this.body.flow;
     this.contacts = this.body.contacts;
   }
@@ -243,6 +248,7 @@ class FlowTriggerService extends BaseMessageHandler {
       await this.databaseService.saveUser(userData);
     }
     await this.startFlow(userData, this.flow.flowName);
+    console.log(`Message sent to ${userData.ProfileName}`);
   }
   async startFlow(userData, flowName, extraData = {}) {
     const trackedFlowId = uuidv4();
