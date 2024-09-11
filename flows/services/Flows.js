@@ -36,7 +36,7 @@ class BaseFlow {
     const message = createTextMessage(recipient, text);
     return message;
   }
-  async saveResponseMessage(message, flowName, templateName) {
+  async saveResponseMessage({ message, flowName, templateName }) {
     //OUTBOUND MESSAGE
     const messageToSave = {
       clientSideTriggered: this.clientSideTriggered,
@@ -62,12 +62,16 @@ class BaseFlow {
     await this.contactModel.addMessageSid(messageId, sid);
   }
   async saveAndSendTextMessage(message, flowName) {
-    const insertedId = await this.saveResponseMessage(message, flowName);
+    const insertedId = await this.saveResponseMessage({ message, flowName });
     const sid = await sendMessage(message);
     await this.updateResponse(insertedId, sid);
   }
 
-  async saveAndSendTemplateMessage(templateKey, templateVariables, flowName) {
+  async saveAndSendTemplateMessage({
+    templateKey,
+    templateVariables,
+    flowName,
+  }) {
     const { templateSid, templateName } = await findTemplateSid(
       templateKey,
       false
@@ -77,11 +81,11 @@ class BaseFlow {
       templateSid,
       templateVariables
     );
-    const insertedId = await this.saveResponseMessage(
-      templateMessage,
+    const insertedId = await this.saveResponseMessage({
+      message: templateMessage,
       flowName,
-      templateName
-    );
+      templateName,
+    });
     const sid = await sendMessage(templateMessage);
     await this.updateResponse(insertedId, sid);
   }
@@ -110,7 +114,7 @@ class OnboardingFlow extends BaseFlow {
     let flowCompletionStatus = false;
     switch (flowStep) {
       case 1: {
-        await this.handleTemplateMessage("onboarding_welcome");
+        await this.handleTemplateMessage({ templateKey: "onboarding_welcome" });
         break;
       }
       case 2: {
@@ -127,13 +131,13 @@ class OnboardingFlow extends BaseFlow {
         break;
       }
       case 4: {
-        await this.handleTemplateMessage(
-          "select_region",
-          {
+        await this.handleTemplateMessage({
+          templateKey: "select_region",
+          templateVariables: {
             select_region_message: `Step 3 of 5: Could you let us know the region you will be seeking support around?`,
           },
-          { organization: this.messageContent }
-        );
+          updateData: { organization: this.messageContent },
+        });
         break;
       }
       case 5: {
@@ -144,26 +148,26 @@ class OnboardingFlow extends BaseFlow {
         break;
       }
       case 6: {
-        await this.handleTemplateMessage(
-          "select_language",
-          {
+        await this.handleTemplateMessage({
+          templateKey: "select_language",
+          templateVariables: {
             select_language_message:
               "Step 5 of 5: Please select a language you would like to see information in",
           },
-          {
+          updateData: {
             "postcode": this.messageContent,
-          }
-        );
+          },
+        });
         break;
       }
       case 7: {
-        await this.handleTemplateMessage(
-          "consent_to_privacy",
-          {
+        await this.handleTemplateMessage({
+          templateKey: "consent_to_privacy",
+          templateVariables: {
             consent_message: `Thank you for sharing.\nBy continuing you agree to our privacy policy, which can be viewed here:\nhttps://www.projectalix.com/privacy\nDo you agree to proceed with assistance?\nPlease press 'consent' to continue.`,
           },
-          { language: this.messageContent }
-        );
+          updateData: { language: this.messageContent },
+        });
         break;
       }
       case OnboardingFlow.FINAL_FLOW_STEP: {
@@ -185,13 +189,15 @@ class OnboardingFlow extends BaseFlow {
     const message = createTextMessage(this.WaId, text);
     await this.saveAndSendTextMessage(message, OnboardingFlow.FLOW_NAME);
   }
-  async handleTemplateMessage(templateKey, templateVariables, updateData = {}) {
-    await this.updateUser(updateData);
-    await this.saveAndSendTemplateMessage(
+  async handleTemplateMessage({ templateKey, templateVariables, updateData }) {
+    if (updateData) {
+      await this.updateUser(updateData);
+    }
+    await this.saveAndSendTemplateMessage({
       templateKey,
       templateVariables,
-      OnboardingFlow.FLOW_NAME
-    );
+      flowName: OnboardingFlow.FLOW_NAME,
+    });
   }
   async handleLastMessage() {
     const text =
@@ -281,11 +287,11 @@ class SignpostingFlow extends BaseFlow {
         templateSid,
         templateVariables
       );
-      const insertedId = await this.saveResponseMessage(
-        templateMessage,
-        this.flowName,
-        templateName
-      );
+      const insertedId = await this.saveResponseMessage({
+        message: templateMessage,
+        flowName: this.flowName,
+        templateName,
+      });
       const sid = await sendMessage(templateMessage);
       await this.updateResponse(insertedId, sid);
     }
@@ -358,11 +364,11 @@ class SignpostingFlow extends BaseFlow {
                 this.WaId,
                 moreOptionsAvailable
               );
-            const insertedId = await this.saveResponseMessage(
-              lastMessage,
-              this.flowName,
-              templateName
-            );
+            const insertedId = await this.saveResponseMessage({
+              message: lastMessage,
+              flowName: this.flowName,
+              templateName,
+            });
             const sid = await sendMessage(lastMessage);
             await this.updateResponse(insertedId, sid);
           }
@@ -430,11 +436,11 @@ class EditDetailsFlow extends BaseFlow {
       const templateVariables = {
         "edit_details_text": "Which information would you like to edit?",
       };
-      await this.saveAndSendTemplateMessage(
+      await this.saveAndSendTemplateMessage({
         templateKey,
         templateVariables,
-        EditDetailsFlow.FLOW_NAME
-      );
+        flowName: EditDetailsFlow.FLOW_NAME,
+      });
     } else if (flowStep === 2) {
       const detailField = userDetailUpdate.detailField;
       const currentValue = await this.contactModel.getContactDetail(
@@ -457,21 +463,21 @@ class EditDetailsFlow extends BaseFlow {
             edit_language_message:
               "Which language would you like to see information in?",
           };
-          await this.saveAndSendTemplateMessage(
+          await this.saveAndSendTemplateMessage({
             templateKey,
             templateVariables,
-            EditDetailsFlow.FLOW_NAME
-          );
+            flowName: EditDetailsFlow.FLOW_NAME,
+          });
         } else if (detailField === "region") {
           const templateKey = "edit_region";
           const templateVariables = {
             select_region_message: `Your region is currently set to ${currentValue}. What would you like to set your region to?`,
           };
-          await this.saveAndSendTemplateMessage(
+          await this.saveAndSendTemplateMessage({
             templateKey,
             templateVariables,
-            EditDetailsFlow.FLOW_NAME
-          );
+            flowName: EditDetailsFlow.FLOW_NAME,
+          });
         }
       }
     } else if (flowStep === 3) {
@@ -484,11 +490,11 @@ class EditDetailsFlow extends BaseFlow {
             ? "Your name has been updated! Would you like to update anything else?"
             : `Your ${detailField} has been updated! Would you like to update anything else?`,
       };
-      await this.saveAndSendTemplateMessage(
+      await this.saveAndSendTemplateMessage({
         templateKey,
         templateVariables,
-        EditDetailsFlow.FLOW_NAME
-      );
+        flowName: EditDetailsFlow.FLOW_NAME,
+      });
     }
 
     return flowCompletionStatus;

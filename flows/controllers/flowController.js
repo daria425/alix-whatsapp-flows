@@ -7,14 +7,14 @@ const { SupportOptionService } = require("../services/SupportOptionService");
 const { ContactModel } = require("../models/ContactModel");
 const { api_base } = require("../config/llm_api.config");
 const { LLMService } = require("../services/LLMService");
-async function runOnboardingFlow(
+async function runOnboardingFlow({
   db,
   contactModel,
   userInfo,
   flowStep,
   userMessage,
-  organizationPhoneNumber
-) {
+  organizationPhoneNumber,
+}) {
   const onboardingFlow = new OnboardingFlow(
     db,
     userInfo,
@@ -26,15 +26,15 @@ async function runOnboardingFlow(
   return flowCompletionStatus;
 }
 
-async function runSignpostingFlow(
+async function runSignpostingFlow({
   db,
   contactModel,
   userInfo,
   flowStep,
   userMessage,
   organizationPhoneNumber,
-  userSelection
-) {
+  userSelection,
+}) {
   const signpostingFlow = new SignpostingFlow(
     db,
     userInfo,
@@ -53,15 +53,15 @@ async function runSignpostingFlow(
   return flowCompletionStatus;
 }
 
-async function runEditDetailsFlow(
+async function runEditDetailsFlow({
   db,
   contactModel,
   userInfo,
   flowStep,
   userMessage,
   organizationPhoneNumber,
-  userDetailUpdate
-) {
+  userDetailUpdate,
+}) {
   const editDetailsFlow = new EditDetailsFlow(
     db,
     userInfo,
@@ -82,41 +82,43 @@ async function flowController(req, res, next) {
   try {
     const { userInfo, organizationPhoneNumber, message, flowStep, startTime } =
       req.body;
-    console.log("req body", req.body);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("req body", req.body);
+    }
     const flow = req.params.flowName;
     const contactModel = new ContactModel(controlRoomDb, startTime);
     await contactModel.updateContact(userInfo.WaId, {});
     if (flow === "onboarding") {
-      flowCompletionStatus = await runOnboardingFlow(
+      flowCompletionStatus = await runOnboardingFlow({
         db,
         contactModel,
         userInfo,
         flowStep,
-        message,
-        organizationPhoneNumber
-      );
+        userMessage: message,
+        organizationPhoneNumber,
+      });
     } else if (flow === "signposting") {
       const userSelection = req.body.userSelection;
-      flowCompletionStatus = await runSignpostingFlow(
+      flowCompletionStatus = await runSignpostingFlow({
         db,
         contactModel,
         userInfo,
         flowStep,
-        message,
+        userMessage: message,
         organizationPhoneNumber,
-        userSelection
-      );
+        userSelection,
+      });
     } else if (flow === "edit-details") {
       const userDetailUpdate = req.body?.userDetailUpdate;
-      flowCompletionStatus = await runEditDetailsFlow(
+      flowCompletionStatus = await runEditDetailsFlow({
         db,
         contactModel,
         userInfo,
         flowStep,
-        message,
+        userMessage: message,
         organizationPhoneNumber,
-        userDetailUpdate
-      );
+        userDetailUpdate,
+      });
     }
     res.status(200).send({ flowCompletionStatus });
   } catch (err) {
