@@ -13,19 +13,25 @@ const { api_base } = require("../config/api_base.config");
 const { DatabaseService } = require("./DatabaseService");
 
 class BaseMessageHandler {
-  constructor(req, res, organizationNumber, firestore, clientSideTriggered) {
+  constructor(
+    req,
+    res,
+    organizationPhoneNumber,
+    firestore,
+    clientSideTriggered
+  ) {
     this.postRequestService = new PostRequestService(api_base);
     this.databaseService = new DatabaseService(req.app.locals.db);
-    this.organizationNumber = organizationNumber;
+    this.organizationPhoneNumber = organizationPhoneNumber;
     this.firestore = firestore;
     this.body = req.body;
     this.res = res;
     this.clientSideTriggered = clientSideTriggered;
   }
-  createMessageData(userData, flowName, trackedFlowId, flowStep) {
+  createMessageData({ userData, flowName, trackedFlowId, flowStep }) {
     return {
       userInfo: userData,
-      organizationPhoneNumber: this.organizationNumber,
+      organizationPhoneNumber: this.organizationPhoneNumber,
       message: {
         ...this.body,
         trackedFlowId,
@@ -38,8 +44,14 @@ class BaseMessageHandler {
   }
 }
 class MessageHandlerService extends BaseMessageHandler {
-  constructor(req, res, organizationNumber, firestore, clientSideTriggered) {
-    super(req, res, organizationNumber, firestore, clientSideTriggered);
+  constructor(
+    req,
+    res,
+    organizationPhoneNumber,
+    firestore,
+    clientSideTriggered
+  ) {
+    super(req, res, organizationPhoneNumber, firestore, clientSideTriggered);
     this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
     this.addUpdateMessages = ["Yes", "No thanks"];
   }
@@ -48,7 +60,7 @@ class MessageHandlerService extends BaseMessageHandler {
     try {
       const registeredUser = await this.databaseService.getUser(this.body.WaId);
       const organization = await this.databaseService.getOrganization(
-        this.organizationNumber
+        this.organizationPhoneNumber
       );
       const userData = registeredUser || {
         "WaId": this.body.WaId,
@@ -73,7 +85,11 @@ class MessageHandlerService extends BaseMessageHandler {
       }
     } catch (err) {
       console.error(err);
-      await deleteFlowOnErr(this.firestore, this.body.WaId, err);
+      await deleteFlowOnErr({
+        db: this.firestore,
+        userId: this.body.WaId,
+        err,
+      });
       this.res.status(500).send(err);
     }
   }
@@ -85,26 +101,26 @@ class MessageHandlerService extends BaseMessageHandler {
     return this.body.Body.toLowerCase().trim() === "edit details";
   }
 
-  async startFlow(userData, messageToSave, flowName, extraData = {}) {
+  async startFlow({ userData, messageToSave, flowName, extraData }) {
     const trackedFlowId = uuidv4();
     const updatedMessageToSave = {
       ...messageToSave,
       Flow: flowName,
       trackedFlowId: trackedFlowId,
     };
-    const messageData = this.createMessageData(
+    const messageData = this.createMessageData({
       userData,
       flowName,
       trackedFlowId,
-      1
-    );
-    await createNewFlow(this.firestore, messageData, extraData);
-    await this.databaseService.saveFlow(
-      userData.WaId,
+      flowStep: 1,
+    });
+    await createNewFlow({ db: this.firestore, messageData, extraData });
+    await this.databaseService.saveFlow({
+      WaId: userData.WaId,
       trackedFlowId,
       flowName,
-      this.clientSideTriggered
-    );
+      clientSideTriggered: this.clientSideTriggered,
+    });
     const response = await this.postRequestService.make_request(
       `flows/${flowName}`,
       messageData
@@ -114,8 +130,8 @@ class MessageHandlerService extends BaseMessageHandler {
   }
 
   async onboardUser(userData, messageToSave) {
-    await this.databaseService.saveUser(userData, this.organizationNumber);
-    await this.startFlow(userData, messageToSave, "onboarding");
+    await this.databaseService.saveUser(userData, this.organizationPhoneNumber);
+    await this.startFlow({ userData, messageToSave, flowName: "onboarding" });
   }
   async startSignpostingFlow(userData, messageToSave) {
     const extraData = {
@@ -124,7 +140,12 @@ class MessageHandlerService extends BaseMessageHandler {
         endFlow: false,
       },
     };
-    await this.startFlow(userData, messageToSave, "signposting", extraData);
+    await this.startFlow({
+      userData,
+      messageToSave,
+      flowName: "signposting",
+      extraData,
+    });
   }
   async startEditDetailsFlow(userData, messageToSave) {
     const extraData = {
@@ -132,23 +153,27 @@ class MessageHandlerService extends BaseMessageHandler {
         endFlow: false,
       },
     };
-    await this.startFlow(userData, messageToSave, "edit-details", extraData);
+    await this.startFlow({
+      userData,
+      messageToSave,
+      flowName: "edit-details",
+      extraData,
+    });
   }
   async handleExistingFlow(userData, messageToSave) {
     const currentFlow = await getCurrentFlow(this.firestore, userData);
     const { flowName, flowStep, id: flowId } = currentFlow;
-    console.log("flow step", flowStep);
     let updatedFlowStep = flowStep;
     if (!this.seeMoreOptionMessages.includes(this.body.Body)) {
       updatedFlowStep += 1;
     }
     console.log("updated flow step", updatedFlowStep);
-    const messageData = this.createMessageData(
+    const messageData = this.createMessageData({
       userData,
       flowName,
-      flowId,
-      updatedFlowStep
-    );
+      trackedFlowId: flowId,
+      flowStep: updatedFlowStep,
+    });
     await this.databaseService.updateFlow(flowId, "in_progress");
     if (flowName === "signposting") {
       messageData.userSelection = await this.updateUserSignpostingSelection(
@@ -162,35 +187,35 @@ class MessageHandlerService extends BaseMessageHandler {
       );
     }
     console.log("message to be sent", messageData);
-    await this.processFlowResponse(
+    await this.processFlowResponse({
       flowName,
       messageToSave,
       messageData,
-      flowId
-    );
+      flowId,
+    });
   }
   async updateUserSignpostingSelection(flowId, currentFlowStep) {
-    const updatedDoc = await updateUserSelection(
-      this.firestore,
+    const updatedDoc = await updateUserSelection({
+      db: this.firestore,
       flowId,
-      currentFlowStep,
-      this.body.Body,
-      this.seeMoreOptionMessages
-    );
+      flowStep: currentFlowStep,
+      selectionValue: this.body.Body,
+      seeMoreOptionMessages: this.seeMoreOptionMessages,
+    });
     return updatedDoc?.userSelection;
   }
   async updateUserDetail(flowId, currentFlowStep) {
-    const updatedDoc = await createUserDetailUpdate(
-      this.firestore,
+    const updatedDoc = await createUserDetailUpdate({
+      db: this.firestore,
       flowId,
-      currentFlowStep,
-      this.body.Body,
-      this.addUpdateMessages
-    );
+      flowStep: currentFlowStep,
+      selectionValue: this.body.Body,
+      addUpdateMessages: this.addUpdateMessages,
+    });
     return updatedDoc?.userDetailUpdate;
   }
 
-  async processFlowResponse(flowName, messageToSave, messageData, flowId) {
+  async processFlowResponse({ flowName, messageToSave, messageData, flowId }) {
     const response = await this.postRequestService.make_request(
       `flows/${flowName}`,
       messageData
@@ -210,8 +235,14 @@ class MessageHandlerService extends BaseMessageHandler {
 }
 
 class FlowTriggerService extends BaseMessageHandler {
-  constructor(req, res, organizationNumber, firestore, clientSideTriggered) {
-    super(req, res, organizationNumber, firestore, clientSideTriggered);
+  constructor(
+    req,
+    res,
+    organizationPhoneNumber,
+    firestore,
+    clientSideTriggered
+  ) {
+    super(req, res, organizationPhoneNumber, firestore, clientSideTriggered);
     this.flow = this.body.flow;
     this.contacts = this.body.contacts;
   }
@@ -230,8 +261,7 @@ class FlowTriggerService extends BaseMessageHandler {
     const registeredUser = await this.databaseService.getUser(WaId);
 
     if (!this.flow.isSendable) {
-      this.res.status(403).send("Flow not enabled for this organization");
-      return;
+      throw new Error("Flow not enabled for this organization");
     }
     const userData = registeredUser || {
       "WaId": WaId,
@@ -240,25 +270,25 @@ class FlowTriggerService extends BaseMessageHandler {
     if (this.body.flowName === "onboarding") {
       await this.databaseService.saveUser(userData);
     }
-    await this.startFlow(userData, this.flow.flowName);
+    await this.startFlow({ userData, flowName: this.flow.flowName });
     console.log(`Message sent to ${userData.ProfileName}`);
   }
-  async startFlow(userData, flowName, extraData = {}) {
+  async startFlow({ userData, flowName }) {
     const trackedFlowId = uuidv4();
-    const messageData = this.createMessageData(
+    const messageData = this.createMessageData({
       userData,
       flowName,
       trackedFlowId,
-      1
-    );
-    await this.databaseService.saveFlow(
-      userData.WaId,
+      flowStep: 1,
+    });
+    await this.databaseService.saveFlow({
+      WaId: userData.WaId,
       trackedFlowId,
       flowName,
-      this.clientSideTriggered
-    );
-    console.log("messageData", messageData); //HERE WE DONT SAVE THE MESSAGE BECAUSE IT ISNT AN ACTUAL WHATSAPP MESSAGE
-    await createNewFlow(this.firestore, messageData, extraData);
+      clientSideTriggered: this.clientSideTriggered,
+    });
+    //HERE WE DONT SAVE THE MESSAGE BECAUSE IT ISNT AN ACTUAL WHATSAPP MESSAGE
+    await createNewFlow(this.firestore, messageData);
     await this.postRequestService.make_request(
       `flows/${flowName}`,
       messageData

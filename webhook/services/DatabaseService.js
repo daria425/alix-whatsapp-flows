@@ -104,7 +104,7 @@ class DatabaseService {
     }
   }
 
-  async saveFlow(WaId, trackedFlowId, flowName, clientSideTriggered) {
+  async saveFlow({ WaId, trackedFlowId, flowName, clientSideTriggered }) {
     try {
       const contact = await this.getUser(WaId);
       const newFlowDoc = {

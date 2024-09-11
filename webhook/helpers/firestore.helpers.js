@@ -1,6 +1,5 @@
-const { v4: uuidv4 } = require("uuid");
 const { FieldValue } = require("firebase-admin/firestore");
-async function createNewFlow(db, messageData, additionalProps = {}) {
+async function createNewFlow({ db, messageData, extraData }) {
   try {
     const startTime = new Date().toISOString();
     const { flowName, userInfo, flowStep, message } = messageData;
@@ -16,12 +15,13 @@ async function createNewFlow(db, messageData, additionalProps = {}) {
       });
       await batch.commit();
     }
+    extraData = extraData || {};
     const data = {
       startTime,
       flowName,
       userId,
       flowStep,
-      ...additionalProps,
+      ...extraData,
     };
     await db.collection("flows").doc(message.trackedFlowId).set(data);
   } catch (error) {
@@ -60,7 +60,7 @@ async function deleteFlowOnCompletion(db, flowId) {
   console.log(`flow ${flowId} completed and deleted successfully`);
 }
 
-async function deleteFlowOnErr(db, userId, err) {
+async function deleteFlowOnErr({ db, userId, err }) {
   const currentFlowSnapshot = await db
     .collection("flows")
     .where("userId", "==", userId)
@@ -78,13 +78,13 @@ async function deleteFlowOnErr(db, userId, err) {
     return { message: "No documents found for the specified userId" };
   }
 }
-async function updateUserSelection(
+async function updateUserSelection({
   db,
   flowId,
   flowStep,
   selectionValue,
-  seeMoreOptionMessages
-) {
+  seeMoreOptionMessages,
+}) {
   const selectionNames = {
     2: "category",
     3: "location",
@@ -119,13 +119,13 @@ async function updateUserSelection(
   }
 }
 
-async function createUserDetailUpdate(
+async function createUserDetailUpdate({
   db,
   flowId,
   flowStep,
   selectionValue,
-  addUpdateMessages
-) {
+  addUpdateMessages,
+}) {
   const runNextStep = !addUpdateMessages.includes(selectionValue);
   const updateQueryFields = {
     1: "detailField",
