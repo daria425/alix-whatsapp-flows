@@ -44,13 +44,13 @@ class BaseMessageHandler {
   }
 }
 class MessageHandlerService extends BaseMessageHandler {
-  constructor(
+  constructor({
     req,
     res,
     organizationPhoneNumber,
     firestore,
-    clientSideTriggered
-  ) {
+    clientSideTriggered,
+  }) {
     super({
       req,
       res,
@@ -241,13 +241,13 @@ class MessageHandlerService extends BaseMessageHandler {
 }
 
 class FlowTriggerService extends BaseMessageHandler {
-  constructor(
+  constructor({
     req,
     res,
     organizationPhoneNumber,
     firestore,
-    clientSideTriggered
-  ) {
+    clientSideTriggered,
+  }) {
     super({
       req,
       res,
