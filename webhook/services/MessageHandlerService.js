@@ -13,13 +13,13 @@ const { api_base } = require("../config/api_base.config");
 const { DatabaseService } = require("./DatabaseService");
 
 class BaseMessageHandler {
-  constructor(
+  constructor({
     req,
     res,
     organizationPhoneNumber,
     firestore,
-    clientSideTriggered
-  ) {
+    clientSideTriggered,
+  }) {
     this.postRequestService = new PostRequestService(api_base);
     this.databaseService = new DatabaseService(req.app.locals.db);
     this.organizationPhoneNumber = organizationPhoneNumber;
@@ -51,7 +51,13 @@ class MessageHandlerService extends BaseMessageHandler {
     firestore,
     clientSideTriggered
   ) {
-    super(req, res, organizationPhoneNumber, firestore, clientSideTriggered);
+    super({
+      req,
+      res,
+      organizationPhoneNumber,
+      firestore,
+      clientSideTriggered,
+    });
     this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
     this.addUpdateMessages = ["Yes", "No thanks"];
   }
@@ -242,7 +248,13 @@ class FlowTriggerService extends BaseMessageHandler {
     firestore,
     clientSideTriggered
   ) {
-    super(req, res, organizationPhoneNumber, firestore, clientSideTriggered);
+    super({
+      req,
+      res,
+      organizationPhoneNumber,
+      firestore,
+      clientSideTriggered,
+    });
     this.flow = this.body.flow;
     this.contacts = this.body.contactList;
   }
