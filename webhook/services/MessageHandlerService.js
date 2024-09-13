@@ -259,15 +259,22 @@ class FlowTriggerService extends BaseMessageHandler {
     this.contacts = this.body.contactList;
   }
   async handle() {
-    const promises = this.contacts.map((contact) =>
-      this.handleBulkMessages(contact.WaId, contact.ProfileName).catch(
-        (error) => {
-          console.error(`Failed to process contact ${contact.WaId}:`, error);
-        }
-      )
-    );
+    const errors = [];
+    const promises = this.contacts.map(async (contact) => {
+      try {
+        await this.handleBulkMessages(contact.WaId, contact.ProfileName);
+      } catch (err) {
+        console.error("An error occured", err);
+        errors.push(
+          `Failed to process message for ${contact.WaId}-${contact.ProfileName}`
+        );
+      }
+    });
     await Promise.all(promises);
-    this.res.status(200).send("Messages processed");
+    if (errors.length > 0) {
+      return this.res.status(500).send("An error occurred processing messages");
+    }
+    return this.res.status(200).send("Messages processed");
   }
   async handleBulkMessages(WaId, ProfileName) {
     const registeredUser = await this.databaseService.getUser(WaId);
