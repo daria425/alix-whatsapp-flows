@@ -160,7 +160,7 @@ async function createUserDetailUpdate({
   }
 }
 async function createCancelSurveyUpdate({ db, flowId, selectionValue }) {
-  const cancelSurvey = selectionValue === "false";
+  const cancelSurvey = selectionValue === "cancel-survey";
   const flowRef = db.collection("flows").doc(flowId);
   if (cancelSurvey) {
     await flowRef.update({

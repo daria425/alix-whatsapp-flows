@@ -147,10 +147,6 @@ const surveyConfig = {
         "7E) How likely are you to recommend Fat Macy’s to a friend?",
       questionNumber: "7E",
     },
-    6: {
-      questionContent:
-        "Thanks so much for completing this survey!\n\nYour feedback is really appreciated.  It's really important that we listen to what you have to share 🥰 \n\nWe will share the results of the survey and the changes we will make at Fat Macy's in November.\n\nGet in touch if there is anything we can help with!",
-    },
   },
 };
 

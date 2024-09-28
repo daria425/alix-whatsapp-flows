@@ -97,6 +97,8 @@ class MessageHandlerService extends BaseMessageHandler {
         await this.startSignpostingFlow(userData, messageToSave);
       } else if (this.isEditDetailsRequest()) {
         await this.startEditDetailsFlow(userData, messageToSave);
+      } else if (this.isSurveyRequest()) {
+        await this.startFatMacysSurveyFlow(userData, messageToSave);
       } else {
         await this.handleExistingFlow(userData, messageToSave);
       }
@@ -111,11 +113,14 @@ class MessageHandlerService extends BaseMessageHandler {
     }
   }
   isGreeting() {
-    return this.body.Body.toLowerCase() === "hi";
+    return this.body.Body.toLowerCase().trim() === "hi";
   }
 
   isEditDetailsRequest() {
     return this.body.Body.toLowerCase().trim() === "edit details";
+  }
+  isSurveyRequest() {
+    return this.body.Body.toLowerCase().trim() === "survey";
   }
 
   async startFlow({ userData, messageToSave, flowName, extraData }) {
@@ -178,6 +183,14 @@ class MessageHandlerService extends BaseMessageHandler {
       extraData,
     });
   }
+
+  async startFatMacysSurveyFlow(userData, messageToSave) {
+    await this.startFlow({
+      userData,
+      messageToSave,
+      flowName: "survey",
+    });
+  }
   async handleExistingFlow(userData, messageToSave) {
     const currentFlow = await getCurrentFlow(this.firestore, userData);
     const { flowName, flowStep, id: flowId } = currentFlow;
@@ -216,12 +229,13 @@ class MessageHandlerService extends BaseMessageHandler {
       messageData.flowSection = updatedDoc.flowSection;
       messageData.flowStep = updatedDoc.flowStep;
       const { questionContent, questionNumber } =
-        surveyConfig[updatedDoc.flowSection][updatedDoc.flowStep];
-      const surveyResponse = {
-        questionContent,
-        questionNumber,
-      };
-      await this.databaseService.updateFlowSurvey(flowId, surveyResponse);
+        surveyConfig?.[updatedDoc.flowSection]?.[updatedDoc.flowStep] || {};
+      if (questionContent && questionNumber) {
+        await this.databaseService.updateFlowSurvey(flowId, {
+          questionContent,
+          questionNumber,
+        });
+      }
     }
     console.log("message to be sent", messageData);
     await this.processFlowResponse({

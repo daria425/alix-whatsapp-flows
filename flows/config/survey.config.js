@@ -168,7 +168,7 @@ const surveyConfig = {
     },
     4: {
       responseContent:
-        "6D) Which of these Fat Macy’s services are you aware of?\n\nPlease REPLY separating the numbers of services with a comma, i.e: '1,2,'\n\n1. Counselling 2.Life coaching\n\n3. Career mentoring\n\n4.CV and interview workshops\n\n5. Benefits and budgeting advice\n\n6. Day trips and social events",
+        "6D) Which of these Fat Macy’s services are you aware of?\n\nPlease REPLY separating the numbers of services with a comma, i.e: '1,2,'\n\n1. Counselling\n\n2. Life coaching\n\n3. Career mentoring\n\n4. CV and interview workshops\n\n5. Benefits and budgeting advice\n\n6. Day trips and social events",
       responseType: "text",
       templateKey: null,
       question: "6D",

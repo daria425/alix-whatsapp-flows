@@ -146,28 +146,18 @@ class DatabaseService {
     const flow = await this.sentFlowsCollection.findOne({
       "trackedFlowId": flowId,
     });
-
     const existingSurveyData = flow?.surveyResponses;
     if (!existingSurveyData || existingSurveyData.length === 0) {
-      return; // No survey data exists
-    }
-
-    // Sort the surveyResponses by createdAt and get the most recent one
-    const latestSurvey = existingSurveyData.sort(
-      (a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt)
-    )[0];
-
-    // If no latestSurvey was found, return
-    if (!latestSurvey) {
       return;
     }
-
-    // Now update the document with the latest survey object modified
+    const latestQuestion = existingSurveyData.sort(
+      (a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt)
+    )[0];
     await this.sentFlowsCollection.updateOne(
       {
         "trackedFlowId": flowId,
-        "surveyResponses.CreatedAt": latestSurvey.CreatedAt,
-      }, // Match on trackedFlowId and latest createdAt
+        "surveyResponses.CreatedAt": latestQuestion.CreatedAt,
+      },
       {
         $set: {
           "surveyResponses.$.userResponse": userResponse, // Add the userResponse property to the latest survey response
