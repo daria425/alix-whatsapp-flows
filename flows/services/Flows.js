@@ -533,16 +533,21 @@ class FatMacysSurveyFlow extends BaseFlow {
       ) {
         flowCompletionStatus = true;
       }
-      const shareName =
-        flowSection === 1 && flowStep === 4 && this.messageContent === "Yes";
-      const isContactable =
-        flowSection === 1 && flowStep === 5 && this.messageContent === "Yes";
-      const updateData = {
-        ProfileName: shareName ? undefined : "Anon",
-        username: shareName ? undefined : "Anon",
-        isContactable,
-      };
-      await this.updateUser(updateData);
+      if (flowSection === 1 && flowStep === 4) {
+        const shareName = this.messageContent === "Yes";
+        const nameUpdate = {
+          ProfileName: shareName ? undefined : "Anon",
+          username: shareName ? undefined : "Anon",
+        };
+        await this.updateUser(nameUpdate);
+      }
+      if (flowSection === 1 && flowStep === 5) {
+        const isContactable = this.messageContent === "Yes";
+        const updateData = {
+          isContactable,
+        };
+        await this.updateUser(updateData);
+      }
       if (responseType === "text") {
         const message = createTextMessage(this.WaId, responseContent);
         await this.saveAndSendTextMessage(
