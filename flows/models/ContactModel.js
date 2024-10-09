@@ -8,16 +8,17 @@ class ContactModel {
   }
   async saveContact(contactData) {
     try {
+      const contactOrganization = await this.organizationsCollection.findOne({
+        "organizationPhoneNumber": this.organizationPhoneNumber,
+      });
+      const contactOrganizationId = contactOrganization._id;
       const contact = await this.contactsCollection.findOne({
         "WaId": contactData.WaId,
+        "organizationId": contactOrganizationId,
       });
       if (contact) {
         return;
       } else {
-        const contactOrganization = await this.organizationsCollection.findOne({
-          "organizationPhoneNumber": this.organizationPhoneNumber,
-        });
-        const contactOrganizationId = contactOrganization._id;
         await this.contactsCollection.insertOne({
           "WaId": contactData.WaId,
           "ProfileName": contactData.ProfileName,
