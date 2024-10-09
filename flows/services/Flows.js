@@ -595,7 +595,9 @@ class FatMacysSurveyFlow extends BaseFlow {
     } else {
       const { responseContent, responseType, templateKey } =
         surveyConfig[flowSection][flowStep];
-      console.log(`user says ${this.messageContent}`);
+      console.log(
+        `user says ${this.messageContent} at flow section ${flowSection} and flow step ${flowStep}`
+      );
       if (
         flowStep === FatMacysSurveyFlow.LAST_STEP &&
         flowSection === FatMacysSurveyFlow.LAST_SECTION
@@ -610,8 +612,9 @@ class FatMacysSurveyFlow extends BaseFlow {
         };
         await this.updateUser(nameUpdate);
       }
-      if (flowSection === 1 && flowStep === 5) {
+      if (flowSection === 2 && flowStep === 1) {
         const isContactable = this.messageContent === "Yes";
+        console.log("here!!!!!!1");
         const updateData = {
           isContactable,
         };
