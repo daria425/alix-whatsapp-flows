@@ -68,18 +68,25 @@ class DatabaseService {
     }
   }
 
-  async getUser(recipient) {
+  async getUser(recipient, organizationPhoneNumber) {
     try {
-      const user = await this.contactCollection.findOne({ "WaId": recipient });
+      const userOrganization = await this.getOrganization(
+        organizationPhoneNumber
+      );
+      const userOrganizationId = userOrganization._id;
+      const user = await this.contactCollection.findOne({
+        "WaId": recipient,
+        "organizationId": userOrganizationId,
+      });
       return user;
     } catch (err) {
       console.error(err);
       throw err; // Consider re-throwing for higher-level error handling
     }
   }
-  async saveMessage(message) {
+  async saveMessage(message, organizationPhoneNumber) {
     try {
-      const contact = await this.getUser(message.WaId);
+      const contact = await this.getUser(message.WaId, organizationPhoneNumber);
       await this.messagesCollection.insertOne({
         ...message,
         ContactId: contact._id,

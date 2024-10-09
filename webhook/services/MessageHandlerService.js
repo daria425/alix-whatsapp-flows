@@ -82,8 +82,11 @@ class MessageHandlerService extends BaseMessageHandler {
 
   async handle() {
     try {
-      const registeredUser = await this.databaseService.getUser(this.body.WaId);
       const organization = await this.databaseService.getOrganization(
+        this.organizationPhoneNumber
+      );
+      const registeredUser = await this.databaseService.getUser(
+        this.body.WaId,
         this.organizationPhoneNumber
       );
       const userData = registeredUser || {
@@ -155,7 +158,10 @@ class MessageHandlerService extends BaseMessageHandler {
       `flows/${flowName}`,
       messageData
     );
-    await this.databaseService.saveMessage(updatedMessageToSave);
+    await this.databaseService.saveMessage(
+      updatedMessageToSave,
+      this.organizationPhoneNumber
+    );
     if (updatedMessageToSave.MessageType === "audio") {
       await createTranscriptionTask(
         updatedMessageToSave.MediaUrl0,
@@ -306,7 +312,10 @@ class MessageHandlerService extends BaseMessageHandler {
       Flow: flowName,
       trackedFlowId: flowId,
     };
-    await this.databaseService.saveMessage(updatedMessageToSave);
+    await this.databaseService.saveMessage(
+      updatedMessageToSave,
+      this.organizationPhoneNumber
+    );
     if (updatedMessageToSave.MessageType === "audio") {
       await createTranscriptionTask(
         updatedMessageToSave.MediaUrl0,
@@ -339,7 +348,11 @@ class FlowTriggerService extends BaseMessageHandler {
     const errors = [];
     const promises = this.contacts.map(async (contact) => {
       try {
-        await this.handleBulkMessages(contact.WaId, contact.ProfileName);
+        await this.handleBulkMessages(
+          contact.WaId,
+          contact.ProfileName,
+          this.organizationPhoneNumber
+        );
       } catch (err) {
         console.error("An error occured", err);
         errors.push(
@@ -353,8 +366,11 @@ class FlowTriggerService extends BaseMessageHandler {
     }
     return this.res.status(200).send("Messages processed");
   }
-  async handleBulkMessages(WaId, ProfileName) {
-    const registeredUser = await this.databaseService.getUser(WaId);
+  async handleBulkMessages(WaId, ProfileName, organizationPhoneNumber) {
+    const registeredUser = await this.databaseService.getUser(
+      WaId,
+      organizationPhoneNumber
+    );
 
     if (!this.flow.isSendable) {
       throw new Error("Flow not enabled for this organization");
