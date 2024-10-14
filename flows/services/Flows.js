@@ -609,6 +609,7 @@ class FatMacysSurveyFlow extends BaseFlow {
         const nameUpdate = {
           ProfileName: shareName ? undefined : "Anon",
           username: shareName ? undefined : "Anon",
+          isAnon: shareName ? false : true,
         };
         await this.updateUser(nameUpdate);
       }
