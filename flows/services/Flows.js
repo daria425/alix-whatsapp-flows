@@ -19,7 +19,9 @@ class BaseFlow {
     this.db = db;
     this.userInfo = userInfo;
     this.WaId = userInfo.WaId;
-    this.messageContent = userMessage?.Body;
+    this.userMessage = userMessage;
+    this.messageContent = this.userMessage?.Body;
+    this.buttonPayload = this.userMessage?.ButtonPayload ?? "-";
     this.listId = userMessage?.ListId;
     this.contactModel = contactModel;
     this.organizationPhoneNumber = organizationPhoneNumber;
@@ -595,17 +597,23 @@ class FatMacysSurveyFlow extends BaseFlow {
     } else {
       const { responseContent, responseType, templateKey } =
         surveyConfig[flowSection][flowStep];
-      console.log(
-        `user says ${this.messageContent} at flow section ${flowSection} and flow step ${flowStep}`
-      );
       if (
         flowStep === FatMacysSurveyFlow.LAST_STEP &&
         flowSection === FatMacysSurveyFlow.LAST_SECTION
       ) {
         flowCompletionStatus = true;
       }
+      console.log("full user message passed in", this.userMessage);
+      console.log(
+        "current flow step passed in:",
+        flowStep,
+        "current flow section passed in:",
+        flowSection,
+        "message content:",
+        this.messageContent
+      );
       if (flowSection === 1 && flowStep === 4) {
-        const shareName = this.messageContent === "Yes";
+        const shareName = this.buttonPayload.split("-")[0] === "sharename";
         const nameUpdate = {
           ProfileName: shareName ? undefined : "Anon",
           username: shareName ? undefined : "Anon",
@@ -614,8 +622,8 @@ class FatMacysSurveyFlow extends BaseFlow {
         await this.updateUser(nameUpdate);
       }
       if (flowSection === 2 && flowStep === 1) {
-        const isContactable = this.messageContent === "Yes";
-        console.log("here!!!!!!1");
+        const isContactable = this.buttonPayload.split("-")[0] === "followup";
+        console.log("user is contactable", isContactable);
         const updateData = {
           isContactable,
         };
