@@ -13,6 +13,7 @@ async function handleMessage(req, res, next) {
           organizationPhoneNumber: req.body.organizationPhoneNumber,
           firestore,
           clientSideTriggered: true,
+          isReminder: false,
         })
       : new MessageHandlerService({
           req,
@@ -20,6 +21,7 @@ async function handleMessage(req, res, next) {
           organizationPhoneNumber: req.body.To,
           firestore,
           clientSideTriggered: false,
+          isReminder: false,
         });
     await messageHandler.handle();
   } catch (err) {

@@ -592,8 +592,9 @@ class FatMacysSurveyFlow extends BaseFlow {
       return flowCompletionStatus;
     }
     if (flowStep === 1 && flowSection === 1) {
-      //FLOW STARTS HERE
-      await this.handleTemplateMessage({ templateKey: "survey_intro" });
+      this.userMessage?.isReminder
+        ? await this.handleTemplateMessage({ templateKey: "survey_intro" })
+        : await this.handleTemplateMessage({ templateKey: "survey_reminder" });
     } else {
       const { responseContent, responseType, templateKey } =
         surveyConfig[flowSection][flowStep];

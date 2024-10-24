@@ -25,6 +25,7 @@ class BaseMessageHandler {
     organizationPhoneNumber,
     firestore,
     clientSideTriggered,
+    isReminder,
   }) {
     this.postRequestService = new PostRequestService(
       flow_api_base,
@@ -36,6 +37,7 @@ class BaseMessageHandler {
     this.body = req.body;
     this.res = res;
     this.clientSideTriggered = clientSideTriggered;
+    this.isReminder = isReminder;
   }
   async createMessageData({
     userData,
@@ -71,6 +73,7 @@ class MessageHandlerService extends BaseMessageHandler {
     organizationPhoneNumber,
     firestore,
     clientSideTriggered,
+    isReminder,
   }) {
     super({
       req,
@@ -78,6 +81,7 @@ class MessageHandlerService extends BaseMessageHandler {
       organizationPhoneNumber,
       firestore,
       clientSideTriggered,
+      isReminder,
     });
     this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
     this.addUpdateMessages = ["Yes", "No thanks"];
@@ -359,6 +363,7 @@ class FlowTriggerService extends BaseMessageHandler {
     organizationPhoneNumber,
     firestore,
     clientSideTriggered,
+    isReminder,
   }) {
     super({
       req,
@@ -366,6 +371,7 @@ class FlowTriggerService extends BaseMessageHandler {
       organizationPhoneNumber,
       firestore,
       clientSideTriggered,
+      isReminder,
     });
     this.flow = this.body.flow;
     this.contacts = this.body.contactList;
@@ -425,6 +431,7 @@ class FlowTriggerService extends BaseMessageHandler {
       trackedFlowId,
       flowName,
       clientSideTriggered: this.clientSideTriggered,
+      isReminder: this.isReminder,
       organizationPhoneNumber: this.organizationPhoneNumber,
     });
     //HERE WE DONT SAVE THE MESSAGE BECAUSE IT ISNT AN ACTUAL WHATSAPP MESSAGE

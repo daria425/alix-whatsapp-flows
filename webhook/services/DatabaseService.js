@@ -1,3 +1,4 @@
+const { ObjectId } = require("mongodb");
 class DatabaseService {
   constructor(db) {
     this.db = db;
@@ -36,6 +37,45 @@ class DatabaseService {
     }
   }
 
+  async getUnresponsiveContacts(flowName, reminderTime, organizationId, env) {
+    const flow = await this.availableFlowsCollection.findOne({
+      "flowName": flowName,
+    });
+    const unansweredSurveys = await this.sentFlowsCollection
+      .aggregate([
+        {
+          $match: {
+            "OrganizationId": new ObjectId(organizationId),
+            "flowName": flowName,
+            "Status": "read",
+            "UpdatedAt": { $lt: reminderTime },
+          },
+        },
+        {
+          $lookup: {
+            from: "contacts",
+            localField: "ContactId",
+            foreignField: "_id",
+            as: "contactInfo",
+          },
+        },
+        {
+          $unwind: "$contactInfo",
+        },
+      ])
+      .toArray();
+    const WaIds = unansweredSurveys.map((survey) => ({
+      WaId: survey.contactInfo.WaId,
+      ProfileName: survey.contactInfo.ProfileName,
+    }));
+    return {
+      flow: flow,
+      contactList:
+        env === "production"
+          ? WaIds
+          : [{ WaId: "38269372208", ProfileName: "Daria" }],
+    };
+  }
   async updateOrganizationWithContact(organizationNumber, contactId) {
     try {
       await this.organizationCollection.updateOne(
@@ -100,6 +140,7 @@ class DatabaseService {
       const userOrganization = await this.getOrganization(
         organizationPhoneNumber
       );
+      console.log(userOrganization);
       const userOrganizationId = userOrganization._id;
       const user = await this.contactCollection.findOne({
         "WaId": recipient,
@@ -147,6 +188,7 @@ class DatabaseService {
   }) {
     try {
       const contact = await this.getUser(WaId, organizationPhoneNumber);
+      console.log(contact);
       const newFlowDoc = {
         CreatedAt: new Date(),
         flowName: flowName,

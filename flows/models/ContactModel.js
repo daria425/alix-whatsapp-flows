@@ -3,6 +3,7 @@ class ContactModel {
     this.contactsCollection = db.collection("contacts");
     this.messageCollection = db.collection("messages");
     this.organizationsCollection = db.collection("organizations");
+    this.flowHistoryCollection = db.collection("flow_history");
     this.organizationPhoneNumber = organizationPhoneNumber;
     this.messageStartTime = new Date(messageStartTime);
   }
@@ -29,7 +30,6 @@ class ContactModel {
       console.log(err);
     }
   }
-
   async getContact(recipient) {
     try {
       const contactOrganization = await this.organizationsCollection.findOne({

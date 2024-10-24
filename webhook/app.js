@@ -5,6 +5,7 @@ const logger = require("morgan");
 const indexRouter = require("./routes/index");
 const webhookRouter = require("./routes/webhook");
 const statusCallbackRouter = require("./routes/status_callback");
+const cronRouter = require("./routes/cron");
 const app = express();
 
 app.use(logger("dev"));
@@ -15,4 +16,5 @@ app.use(cookieParser());
 app.use("/", indexRouter);
 app.use("/webhook", webhookRouter);
 app.use("/callback", statusCallbackRouter);
+app.use("/cron", cronRouter);
 module.exports = app;
