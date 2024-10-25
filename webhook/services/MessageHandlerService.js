@@ -58,6 +58,7 @@ class BaseMessageHandler {
         ...this.body,
         trackedFlowId,
         clientSideTriggered: this.clientSideTriggered,
+        isReminder: this.isReminder,
       },
       flowName,
       flowStep,
@@ -179,6 +180,7 @@ class MessageHandlerService extends BaseMessageHandler {
       flowName,
       clientSideTriggered: this.clientSideTriggered,
       organizationPhoneNumber: this.organizationPhoneNumber,
+      isReminder: this.isReminder,
     });
     await this.postRequestService.make_request(
       `flows/${flowName}`,

@@ -48,6 +48,10 @@ class DatabaseService {
             "OrganizationId": new ObjectId(organizationId),
             "flowName": flowName,
             "Status": "read",
+            "reminderSent": {
+              $exists: false,
+            },
+            $or: [{ isReminder: { $exists: false } }, { isReminder: false }],
             "UpdatedAt": { $lt: reminderTime },
           },
         },
@@ -64,7 +68,7 @@ class DatabaseService {
         },
         {
           $match: {
-            "$contactInfo.reminderSent": { $exists: false },
+            "contactInfo.reminderSent": { $exists: false },
           },
         },
       ])
@@ -73,6 +77,20 @@ class DatabaseService {
       WaId: survey.contactInfo.WaId,
       ProfileName: survey.contactInfo.ProfileName,
     }));
+    console.log(unansweredSurveys);
+    const contactIds = unansweredSurveys.map(
+      (survey) => survey.contactInfo._id
+    );
+    console.log(contactIds);
+    const flowIds = unansweredSurveys.map((survey) => survey._id);
+    await this.sentFlowsCollection.updateMany(
+      { _id: { $in: flowIds } },
+      { $set: { "reminderSent": true } }
+    );
+    await this.contactCollection.updateMany(
+      { _id: { $in: contactIds } },
+      { $set: { "reminderSent": true } }
+    );
     return {
       flow: flow,
       contactList:
@@ -190,6 +208,7 @@ class DatabaseService {
     flowName,
     clientSideTriggered,
     organizationPhoneNumber,
+    isReminder,
   }) {
     try {
       const contact = await this.getUser(WaId, organizationPhoneNumber);
@@ -202,6 +221,7 @@ class DatabaseService {
         Status: "sent",
         clientSideTriggered,
         trackedFlowId,
+        isReminder,
       };
       await this.sentFlowsCollection.insertOne(newFlowDoc);
     } catch (err) {
