@@ -4,7 +4,7 @@ async function handleStatusCallback(req, res, next) {
     const body = JSON.parse(JSON.stringify(req.body));
     const { MessageSid, MessageStatus } = body;
     const dbService = new DatabaseService(req.app.locals.db);
-    if (MessageStatus !== "sent") {
+    if (MessageStatus !== "sent" && MessageStatus !== "queued") {
       await dbService.updateMessageStatus(MessageSid, MessageStatus);
     }
     if (MessageStatus === "delivered") {

@@ -175,9 +175,9 @@ class DatabaseService {
         { MessageSid: messageSid },
         { $set: { Status: status } }
       );
-      if (updatedMessage.clientSideTriggered) {
-        await this.updateFlowStatus(updatedMessage.trackedFlowId, status);
-      }
+
+      await this.updateFlowStatus(updatedMessage.trackedFlowId, status);
+
       console.log(`Message status updated to ${status}`);
     } catch (err) {
       console.error(err);
@@ -209,15 +209,32 @@ class DatabaseService {
     }
   }
   async updateFlowStatus(flowId, statusUpdate) {
-    await this.sentFlowsCollection.findOneAndUpdate(
-      { "trackedFlowId": flowId },
-      {
-        $set: {
-          Status: statusUpdate,
-          UpdatedAt: new Date(),
+    if (statusUpdate === "delivered") {
+      await this.sentFlowsCollection.findOneAndUpdate(
+        {
+          "trackedFlowId": flowId,
+          "Status": {
+            $ne: "read",
+          },
         },
-      }
-    );
+        {
+          $set: {
+            Status: statusUpdate,
+            UpdatedAt: new Date(),
+          },
+        }
+      );
+    } else {
+      await this.sentFlowsCollection.findOneAndUpdate(
+        { "trackedFlowId": flowId },
+        {
+          $set: {
+            Status: statusUpdate,
+            UpdatedAt: new Date(),
+          },
+        }
+      );
+    }
   }
   async updateFlowStartTime(flowId) {
     await this.sentFlowsCollection.findOneAndUpdate(
