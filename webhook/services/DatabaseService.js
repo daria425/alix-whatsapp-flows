@@ -82,9 +82,8 @@ class DatabaseService {
       (survey) => survey.contactInfo._id
     );
     console.log(contactIds);
-    const flowIds = unansweredSurveys.map((survey) => survey._id);
     await this.sentFlowsCollection.updateMany(
-      { _id: { $in: flowIds } },
+      { ContactId: { $in: contactIds }, "flowName": flowName },
       { $set: { "reminderSent": true } }
     );
     await this.contactCollection.updateMany(
