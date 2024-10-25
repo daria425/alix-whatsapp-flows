@@ -91,12 +91,10 @@ class DatabaseService {
       { _id: { $in: contactIds } },
       { $set: { "reminderSent": true } }
     );
+    const testUser = { WaId: "38269372208", ProfileName: "Daria" };
     return {
       flow: flow,
-      contactList:
-        env === "production"
-          ? WaIds
-          : [{ WaId: "38269372208", ProfileName: "Daria" }],
+      contactList: env === "production" ? [...WaIds, testUser] : [testUser],
     };
   }
   async updateOrganizationWithContact(organizationNumber, contactId) {
