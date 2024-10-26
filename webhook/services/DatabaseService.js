@@ -246,7 +246,9 @@ class DatabaseService {
         { "trackedFlowId": flowId },
         {
           $set: {
-            Status: statusUpdate,
+            Status: {
+              $ne: "completed",
+            },
             UpdatedAt: new Date(),
           },
         }
