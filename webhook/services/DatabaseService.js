@@ -7,6 +7,7 @@ class DatabaseService {
     this.messagesCollection = this.db.collection("messages");
     this.sentFlowsCollection = this.db.collection("flow_history");
     this.availableFlowsCollection = this.db.collection("flows");
+    this.bulkCompletionEnabledFlownames = ["survey"];
   }
 
   async getOrganization(organizationNumber) {
@@ -226,34 +227,40 @@ class DatabaseService {
     }
   }
   async updateFlowStatus(flowId, statusUpdate) {
-    if (statusUpdate === "delivered") {
-      await this.sentFlowsCollection.findOneAndUpdate(
-        {
-          "trackedFlowId": flowId,
-          "Status": {
-            $ne: "read",
+    const query = { "trackedFlowId": flowId };
+    const update = {
+      $set: {
+        Status: statusUpdate,
+        UpdatedAt: new Date(),
+      },
+    };
+
+    // Conditions for different statuses
+    if (statusUpdate === "completed") {
+      const flow = await this.sentFlowsCollection.findOne(query);
+
+      if (this.bulkCompletionEnabledFlownames.includes(flow.flowName)) {
+        // Update all flows for the ContactId and flowName if bulk completion is enabled
+        await this.sentFlowsCollection.updateMany(
+          {
+            ContactId: flow.ContactId,
+            flowName: flow.flowName,
           },
-        },
-        {
-          $set: {
-            Status: statusUpdate,
-            UpdatedAt: new Date(),
-          },
-        }
-      );
+          update
+        );
+        return; // Exit after bulk update to avoid further processing
+      } else {
+        await this.sentFlowsCollection.findOneAndUpdate(query, update);
+      }
+      // Otherwise, apply the default update logic below for single flow
+    } else if (statusUpdate === "delivered") {
+      query.Status = { $ne: "read" };
     } else {
-      await this.sentFlowsCollection.findOneAndUpdate(
-        { "trackedFlowId": flowId },
-        {
-          $set: {
-            Status: {
-              $ne: "completed",
-            },
-            UpdatedAt: new Date(),
-          },
-        }
-      );
+      query.Status = { $ne: "completed" };
     }
+
+    // Single database call for the specific update
+    await this.sentFlowsCollection.findOneAndUpdate(query, update);
   }
   async updateFlowStartTime(flowId) {
     await this.sentFlowsCollection.findOneAndUpdate(
