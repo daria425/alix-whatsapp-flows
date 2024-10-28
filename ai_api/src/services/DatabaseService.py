@@ -21,7 +21,7 @@ class DatabaseService:
         message_collection=self.db["messages"]
         flow_history_collection=self.db["flow_history"]
         try:
-           message_collection.update_one({"MessageSid": message_sid}, {"$set": {"Body": transcription} } )
+           message_collection.update_one({"MessageSid": message_sid}, {"$set": {"Body": transcription, "gcsAudioUri": gcs_uri} } )
            flow_history_collection.update_one(         {
                 "surveyResponses.originalMessageSid": message_sid  # Filter to find the document
             },
