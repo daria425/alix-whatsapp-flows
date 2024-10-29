@@ -1,4 +1,5 @@
 const { ObjectId } = require("mongodb");
+const { logFlowStatus } = require("../helpers/logging.helpers");
 class DatabaseService {
   constructor(db) {
     this.db = db;
@@ -234,16 +235,11 @@ class DatabaseService {
         UpdatedAt: new Date(),
       },
     };
-
-    // Conditions for different statuses
     if (statusUpdate === "completed") {
       const flow = await this.sentFlowsCollection.findOne(query);
 
       if (this.bulkCompletionEnabledFlownames.includes(flow.flowName)) {
-        console.log(
-          `Bulk update operation being executed, flow with ${flowId} being updated to ${statusUpdate}`
-        );
-        // Update all flows for the ContactId and flowName if bulk completion is enabled
+        logFlowStatus(flowId, statusUpdate, true);
         await this.sentFlowsCollection.updateMany(
           {
             ContactId: flow.ContactId,
@@ -251,26 +247,18 @@ class DatabaseService {
           },
           update
         );
-        return; // Exit after bulk update to avoid further processing
+        return;
       } else {
-        console.log(
-          `No bulk update operation, flow with ${flowId} being updated to ${statusUpdate}`
-        );
+        logFlowStatus(flowId, statusUpdate, false);
         await this.sentFlowsCollection.findOneAndUpdate(query, update);
       }
-      // Otherwise, apply the default update logic below for single flow
     } else if (statusUpdate === "delivered") {
       query.Status = { $nin: ["in_progress", "read", "completed"] };
-      console.log(
-        `No bulk update operation and flow not yet completed, flow with ${flowId} being updated to ${statusUpdate} if it is not in_progress", read or completed `
-      );
+      logFlowStatus(flowId, statusUpdate, false);
     } else {
       query.Status = { $nin: ["in_progress", "completed"] };
     }
-    console.log(
-      `No bulk update operation, flow with ${flowId} being updated to ${statusUpdate} if it is not in_progress or completed `
-    );
-    // Single database call for the specific update
+    logFlowStatus(flowId, statusUpdate, false);
     await this.sentFlowsCollection.findOneAndUpdate(query, update);
   }
   async updateFlowStartTime(flowId) {
