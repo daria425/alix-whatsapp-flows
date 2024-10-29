@@ -5,6 +5,9 @@ async function handleStatusCallback(req, res, next) {
     const { MessageSid, MessageStatus } = body;
     const dbService = new DatabaseService(req.app.locals.db);
     if (MessageStatus !== "sent" && MessageStatus !== "queued") {
+      console.log(
+        `Message status is not queued or sent, message & flow being updated to ${MessageStatus}`
+      );
       await dbService.updateMessageStatus(MessageSid, MessageStatus);
     }
     if (MessageStatus === "delivered") {

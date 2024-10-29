@@ -240,6 +240,9 @@ class DatabaseService {
       const flow = await this.sentFlowsCollection.findOne(query);
 
       if (this.bulkCompletionEnabledFlownames.includes(flow.flowName)) {
+        console.log(
+          `Bulk update operation being executed, flow with ${flowId} being updated to ${statusUpdate}`
+        );
         // Update all flows for the ContactId and flowName if bulk completion is enabled
         await this.sentFlowsCollection.updateMany(
           {
@@ -250,15 +253,23 @@ class DatabaseService {
         );
         return; // Exit after bulk update to avoid further processing
       } else {
+        console.log(
+          `No bulk update operation, flow with ${flowId} being updated to ${statusUpdate}`
+        );
         await this.sentFlowsCollection.findOneAndUpdate(query, update);
       }
       // Otherwise, apply the default update logic below for single flow
     } else if (statusUpdate === "delivered") {
-      query.Status = { $ne: "read" };
+      query.Status = { $nin: ["in_progress", "read", "completed"] };
+      console.log(
+        `No bulk update operation and flow not yet completed, flow with ${flowId} being updated to ${statusUpdate} if it is not in_progress", read or completed `
+      );
     } else {
-      query.Status = { $ne: "completed" };
+      query.Status = { $nin: ["in_progress", "completed"] };
     }
-
+    console.log(
+      `No bulk update operation, flow with ${flowId} being updated to ${statusUpdate} if it is not in_progress or completed `
+    );
     // Single database call for the specific update
     await this.sentFlowsCollection.findOneAndUpdate(query, update);
   }
