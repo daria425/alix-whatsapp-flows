@@ -49,7 +49,7 @@ class DatabaseService {
           $match: {
             "OrganizationId": new ObjectId(organizationId),
             "flowName": flowName,
-            "Status": "read",
+            "Status": { $in: ["read", "delivered"] },
             "reminderSent": {
               $exists: false,
             },

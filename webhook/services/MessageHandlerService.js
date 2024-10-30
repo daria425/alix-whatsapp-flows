@@ -436,7 +436,6 @@ class FlowTriggerService extends BaseMessageHandler {
       isReminder: this.isReminder,
       organizationPhoneNumber: this.organizationPhoneNumber,
     });
-    //HERE WE DONT SAVE THE MESSAGE BECAUSE IT ISNT AN ACTUAL WHATSAPP MESSAGE
 
     await createNewFlow({ db: this.firestore, messageData });
     await this.postRequestService.make_request(
