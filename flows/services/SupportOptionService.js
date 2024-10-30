@@ -16,6 +16,7 @@ class SupportOptionService {
       "longitude": 1,
       "latitude": 1,
     };
+    this.defaultRegion = "Cornwall";
   }
 
   async getTags() {
@@ -159,7 +160,13 @@ class SupportOptionService {
     }
   }
 
-  async selectOptions(tag, location, region, page, pageSize) {
+  async selectOptions({
+    tag,
+    location,
+    region = this.defaultRegion,
+    page,
+    pageSize,
+  }) {
     const locationFunctions = {
       "national only": this.getPaginatedNationalOptions.bind(this),
       "local only": this.getPaginatedLocalOptions.bind(this),

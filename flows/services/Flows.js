@@ -356,14 +356,13 @@ class SignpostingFlow extends BaseFlow {
         const tag = formatTag(category);
         const pageSize = 5;
         const location_choice = location.toLowerCase();
-        const dbResult = await supportOptionService.selectOptions(
+        const dbResult = await supportOptionService.selectOptions({
           tag,
-          location_choice,
+          location: location_choice,
           region,
           page,
           pageSize,
-          true
-        );
+        });
         const { result, remaining } = dbResult;
         if (result.length < 1) {
           flowCompletionStatus = true;
