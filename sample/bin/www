@@ -3,28 +3,24 @@
 /**
  * Module dependencies.
  */
-require("dotenv").config();
-const { initializeDatabases } = require("../config/database.config");
-const primaryDbConfig = {
-  primaryDbName: "signposting_db",
-  primaryDbUri: process.env.SIGNPOSTING_DB_URI,
-};
-const secondaryDbConfig = {
-  secondaryDbName:
+
+const app = require("../app");
+const debug = require("debug")("sample:server");
+const http = require("http");
+const { initializeDatabase } = require("../config/database.config");
+const dbConfig = {
+  dbName:
     process.env.NODE_ENV === "production"
       ? "controlRoomDB"
       : "controlRoomDB_dev",
-  secondaryDbUri: process.env.CONTROL_ROOM_DB_URI,
+  dbUri: process.env.CONTROL_ROOM_DB_URI,
 };
-const app = require("../app");
-const debug = require("debug")("flows:server");
-const http = require("http");
 
 /**
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort(process.env.PORT || "8080");
+const port = normalizePort(process.env.PORT || "5000");
 app.set("port", port);
 
 /**
@@ -36,7 +32,7 @@ const server = http.createServer(app);
 /**
  * Listen on provided port, on all network interfaces.
  */
-initializeDatabases(app, primaryDbConfig, secondaryDbConfig)
+initializeDatabase(app, dbConfig)
   .then(() => {
     server.listen(port);
     server.on("error", onError);
