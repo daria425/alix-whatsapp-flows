@@ -183,6 +183,8 @@ class MessageHandlerService extends BaseMessageHandler {
         await this.startEditDetailsFlow(userData, messageToSave);
       } else if (this.isSurveyRequest()) {
         await this.startFatMacysSurveyFlow(userData, messageToSave);
+      } else if (this.isSample()) {
+        await this.startSampleFlow(userData, messageToSave);
       } else {
         await this.handleExistingFlow(userData, messageToSave);
       }
@@ -206,7 +208,9 @@ class MessageHandlerService extends BaseMessageHandler {
   isSurveyRequest() {
     return this.body.Body.toLowerCase().trim() === "survey";
   }
-
+  isSample() {
+    return this.body.Body.toLowerCase().trim() === "sample";
+  }
   /**
    * Starts a specific flow based on the user data and message information.
    *
@@ -366,6 +370,14 @@ class MessageHandlerService extends BaseMessageHandler {
    *
    * @returns {Promise<void>} - Resolves when the flow has been started.
    */
+
+  async startSampleFlow(userData, messageToSave) {
+    await this.startFlow({
+      userData,
+      messageToSave,
+      flowName: "sample",
+    });
+  }
 
   async startSignpostingFlow(userData, messageToSave) {
     const extraData = {

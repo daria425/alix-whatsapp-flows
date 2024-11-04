@@ -3,11 +3,12 @@ const {
   SignpostingFlow,
   EditDetailsFlow,
   FatMacysSurveyFlow,
-} = require("../services/Flows");
-const { SupportOptionService } = require("../services/SupportOptionService");
+} = require("../services/dn/Flows");
+const { SampleFlow } = require("../services/samples/SampleFlow");
+const { SupportOptionService } = require("../services/dn/SupportOptionService");
 const { ContactModel } = require("../models/ContactModel");
 const { api_base } = require("../config/llm_api.config");
-const { LLMService } = require("../services/LLMService");
+const { LLMService } = require("../services/dn/LLMService");
 
 async function runSurveyFlow({
   db,
@@ -107,6 +108,25 @@ async function runEditDetailsFlow({
   );
   return flowCompletionStatus;
 }
+async function runSampleFlow({
+  db,
+  userInfo,
+  userMessage,
+  contactModel,
+  organizationPhoneNumber,
+  organizationMessagingServiceSid,
+  flowStep,
+}) {
+  const sampleFlow = new SampleFlow(
+    db,
+    userInfo,
+    userMessage,
+    contactModel,
+    organizationPhoneNumber,
+    organizationMessagingServiceSid
+  );
+  await sampleFlow.handleFlowStep(flowStep);
+}
 async function flowController(req, res, next) {
   const db = req.app.locals.db;
   const controlRoomDb = req.app.locals.secondaryDb;
@@ -180,6 +200,16 @@ async function flowController(req, res, next) {
         organizationMessagingServiceSid,
         cancelSurvey,
         flowSection,
+      });
+    } else if (flow === "sample") {
+      flowCompletionStatus = await runSampleFlow({
+        db,
+        contactModel,
+        userInfo,
+        flowStep,
+        userMessage: message,
+        organizationMessagingServiceSid,
+        organizationPhoneNumber,
       });
     }
     res.status(200).send({ flowCompletionStatus });
