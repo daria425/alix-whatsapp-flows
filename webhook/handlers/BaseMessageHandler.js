@@ -5,20 +5,22 @@ const {
 } = require("../config/api_base.config");
 const { DatabaseService } = require("../services/DatabaseService");
 /**
- * Base class for handling inbound message operations.
+ * Base class for handling message operations.
  */
 class BaseMessageHandler {
   /**
-   * Creates an instance of BaseMessageHandler.
-   * @param {Object} params - Parameters for the handler.
-   * @param {Object} params.req - The request object.
-   * @param {Object} params.res - The response object.
-   * @param {string} params.organizationPhoneNumber - The organization phone number.
+   * Initializes a new instance of BaseMessageHandler.
+   * @constructor
+   * @param {Object} params - Parameters for initializing the handler.
+   * @param {Object} params.req - The HTTP request object from Express.
+   * @param {Object} params.res - The HTTP response object from Express.
+   * @param {string} params.organizationPhoneNumber - The organization's phone number.
    * @param {Object} params.firestore - Firestore database instance.
-   * @param {boolean} params.clientSideTriggered - Indicates if the request was triggered from the client side.
-   * @param {boolean} params.isReminder - Indicates if this is a reminder message.
+   * @param {boolean} params.clientSideTriggered - Indicates if the request originated from the client side (sent from control room).
+   * @param {boolean} params.isReminder - Indicates if this is a reminder message (created via cron job, used for Survey flow).
+   * @see {@link PostRequestService} for making HTTP requests
+   * @see {@link DatabaseService} for database operations
    */
-
   constructor({
     req,
     res,
@@ -42,7 +44,7 @@ class BaseMessageHandler {
   /**
    * Creates message data to be sent based on the user and flow information.
    * @param {Object} params - Parameters for creating message data.
-   * @param {Object} params.userInfo - The user data object.
+   * @param {Object} params.userInfo - The user data object, contains additional information about the user if they have already been contacted by the organizations number.
    * @param {string} params.flowName - The name of the flow.
    * @param {string} params.trackedFlowId - The ID tracking the flow.
    * @param {number} params.flowStep - The current step in the flow.
@@ -50,6 +52,7 @@ class BaseMessageHandler {
    * @returns {Promise<Object>} The constructed message data object,
    * adds additional information to the message body recieved from either Twilio's API (if a user sends a message directly to the service)
    * or to the mock message body recieved from the front-end (req.body in both cases).
+   * @see {@link DatabaseService#getMessagingServiceSid} to fetch the messaging service ID configured for an organization
    */
   async createMessageData({
     userInfo,

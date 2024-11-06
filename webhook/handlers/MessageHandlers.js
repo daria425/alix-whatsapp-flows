@@ -47,7 +47,6 @@ class InboundMessageHandler extends BaseMessageHandler {
     });
     this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
     this.addUpdateMessages = ["Yes", "No thanks"];
-    this.cancellationMessages = ["No thanks sorry"];
   }
 
   /**
@@ -284,13 +283,12 @@ class InboundMessageHandler extends BaseMessageHandler {
    *
    * @param {Object} userInfo - The data of the user to start the flow for.
    * @param {Object} messageToSave - Message data to be used in the signposting flow.
-   *
+   * @param {string} sampleVersion - Sets whether to start the class based (1) or function based (2) flow
    * Calls:
-   * - `startFlow`: Starts the "signposting" flow with `userSelection` extra data.
+   * - `startFlow`: Starts the "sample" flow with sample version set.
    *
    * @returns {Promise<void>} - Resolves when the flow has been started.
    */
-
   async startSampleFlow(userInfo, messageToSave, sampleVersion) {
     await this.startFlow({
       userInfo,
@@ -299,13 +297,25 @@ class InboundMessageHandler extends BaseMessageHandler {
     });
   }
 
+  /**
+   * Starts the signposting flow for the user.
+   *
+   * @param {Object} userInfo - The data of the user to start the flow for.
+   * @param {Object} messageToSave - Message data to be used in the signposting flow.
+   *
+   * Calls:
+   * - `startFlow`: Starts the "signposting" flow with `userSelection` extra data.
+   *
+   * @returns {Promise<void>} - Resolves when the flow has been started.
+   */
+
   async startSignpostingFlow(userInfo, messageToSave) {
     const extraData = {
       userSelection: {
         page: 1,
         endFlow: false,
       },
-    };
+    }; //extraData helps set up logic for the signposting flow (paginated results)
     await this.startFlow({
       userInfo,
       messageToSave,
@@ -357,12 +367,11 @@ class InboundMessageHandler extends BaseMessageHandler {
       flowName: "survey",
     });
   }
-
   /**
    *
    * Handles an existing flow for the user based on their current flow status.
    * This method retrieves the user's current flow and advances the flow step
-   * based on user input or "See More Options" conditions.
+   * based on user input or "See More Options" conditions (signposting specific).
    * @param {Object} userInfo - The user's data.
    * @param {Object} messageToSave - Message data to be saved.
    * Calls:
@@ -370,6 +379,7 @@ class InboundMessageHandler extends BaseMessageHandler {
    *  - `createMessageData`: @see {@link createMessageData}
    *  - `databaseService.updateFlowStatus`: updates the flow status to "in_progress", if a flow already exists for the user that means that
    * the message recieved from the Twilio API is a response to an outbound message sent.
+   *  - `processFlowResponse`: @see {@link processFlowResponse}
    *  -
    * @returns {Promise<void>}
    */
@@ -378,7 +388,7 @@ class InboundMessageHandler extends BaseMessageHandler {
     const { flowName, flowStep, id: flowId } = currentFlow;
     let updatedFlowStep = flowStep;
     if (!this.seeMoreOptionMessages.includes(this.body.Body)) {
-      updatedFlowStep += 1;
+      updatedFlowStep += 1; //Signposting flow specific bit of logic, advances the current flow step for all other flows, handles the pagination of search results in signposting
     }
     console.log("updated flow step", updatedFlowStep);
     const messageData = await this.createMessageData({
@@ -393,7 +403,7 @@ class InboundMessageHandler extends BaseMessageHandler {
     if (messageData.flowStep === 2 && messageData.flowSection === 1) {
       await this.databaseService.updateFlowStartTime(flowId);
     }
-    // Handle flow-specific data updates based on the flow type
+    // Handle flow-specific data updates based on the flow type, these methods are specific to each flow type so for handling any advanced logic you will likely need to add your own
     if (flowName === "signposting") {
       messageData.userSelection = await this.updateUserSignpostingSelection(
         flowId,
@@ -419,7 +429,6 @@ class InboundMessageHandler extends BaseMessageHandler {
       );
       messageData.flowSection = updatedDoc.flowSection;
       messageData.flowStep = updatedDoc.flowStep;
-      console.log("messageData here!!", messageData);
       const { questionContent, questionNumber } =
         surveyConfig?.[updatedDoc.flowSection]?.[updatedDoc.flowStep] || {};
       if (questionContent && questionNumber) {
