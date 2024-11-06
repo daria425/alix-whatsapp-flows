@@ -1,7 +1,7 @@
 const {
-  MessageHandlerService,
-  FlowTriggerService,
-} = require("../services/MessageHandlerService");
+  InboundMessageHandler,
+  OutboundFlowHandler,
+} = require("../handlers/MessageHandlers");
 const { firestore } = require("../config/firestore.config");
 
 /**
@@ -10,13 +10,13 @@ const { firestore } = require("../config/firestore.config");
  *
  * @param {Object} req - The HTTP request object, containing headers and body.
  * @param {Object} req.body - The body of the request containing message data.
- * @param {string} req.body.organizationPhoneNumber - Phone number for organization, used by FlowTriggerService, sent from front-end.
- * @param {string} req.body.To - Recipient phone number, used by MessageHandlerService.
+ * @param {string} req.body.organizationPhoneNumber - Phone number for organization, used by OutboundFlowHandler, sent from front-end.
+ * @param {string} req.body.To - Recipient phone number, used by InboundMessageHandler.
  * @param {Object} res - The HTTP response object for sending responses.
  * @param {Function} next - Express middleware function for handling errors.
  * @throws Will call `next` with an error if the message handling fails.
  * @example
- * // Sample request body for FlowTriggerService
+ * // Sample request body for OutboundFlowHandler
  * // {
  * //   "flow": {
  * //     "_id": { "$oid": "" },
@@ -32,7 +32,7 @@ const { firestore } = require("../config/firestore.config");
  * // }
  *
  * @example
- * // Sample request body for MessageHandlerService
+ * // Sample request body for InboundMessageHandler
  * // {
  * //   "SmsMessageSid": "----",
  * //   "NumMedia": "0",
@@ -59,11 +59,11 @@ async function handleMessage(req, res, next) {
     /**
      * Determines the appropriate service to handle the message based on
      * the presence of a "client-side-trigger" header.
-     * - FlowTriggerService handles client-side triggered messages from front-end.
-     * - MessageHandlerService handles messages sent by WhatsApp users/Twilio's API.
+     * - OutboundFlowHandler handles client-side triggered messages from front-end.
+     * - InboundMessageHandler handles messages sent by WhatsApp users/Twilio's API.
      */
     const messageHandler = req.headers["client-side-trigger"]
-      ? new FlowTriggerService({
+      ? new OutboundFlowHandler({
           req,
           res,
           organizationPhoneNumber: req.body.organizationPhoneNumber,
@@ -71,7 +71,7 @@ async function handleMessage(req, res, next) {
           clientSideTriggered: true,
           isReminder: false,
         })
-      : new MessageHandlerService({
+      : new InboundMessageHandler({
           req,
           res,
           organizationPhoneNumber: req.body.To,
