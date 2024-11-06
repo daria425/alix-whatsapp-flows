@@ -117,6 +117,7 @@ class InboundMessageHandler extends BaseMessageHandler {
       this.res.status(500).send(err);
     }
   }
+  //functions to select the flow to start based off the inbound message
   isGreeting() {
     return this.body.Body.toLowerCase().trim() === "hi";
   }
@@ -447,7 +448,6 @@ class InboundMessageHandler extends BaseMessageHandler {
       flowId,
     });
   }
-
   /**
    * Updates user's selection for signposting flow.
    * @param {string} flowId - The unique flow ID.
@@ -465,14 +465,12 @@ class InboundMessageHandler extends BaseMessageHandler {
     });
     return updatedDoc?.userSelection;
   }
-
   /**
    * Updates user's details for the edit-details flow.
    * @param {string} flowId - The unique flow ID.
    * @param {number} currentFlowStep - The current step in the flow.
    * @returns {Promise<string>} - The updated user detail.
    */
-
   async updateUserDetail(flowId, currentFlowStep) {
     const updatedDoc = await createUserDetailUpdate({
       db: this.firestore,
@@ -537,7 +535,21 @@ class InboundMessageHandler extends BaseMessageHandler {
   }
 }
 
+/**
+ * Service for sending out outbound flows/messages from the control room.
+ * @extends BaseMessageHandler
+ */
 class OutboundFlowHandler extends BaseMessageHandler {
+  /**
+   * Creates an instance of OutboundFlowHandler.
+   * @param {Object} params - Parameters for the handler.
+   * @param {Object} params.req - The HTTP request object.
+   * @param {Object} params.res - The HTTP response object.
+   * @param {string} params.organizationPhoneNumber - The organization phone number.
+   * @param {Object} params.firestore - Firestore database instance.
+   * @param {boolean} params.clientSideTriggered - Indicates if the request was triggered from the client side (true for this class).
+   * @param {boolean} params.isReminder - Indicates if this is a reminder message.
+   */
   constructor({
     req,
     res,
@@ -557,6 +569,7 @@ class OutboundFlowHandler extends BaseMessageHandler {
     this.flow = this.body.flow;
     this.contacts = this.body.contactList;
   }
+
   async handle() {
     const errors = [];
     const promises = this.contacts.map(async (contact) => {
@@ -579,6 +592,13 @@ class OutboundFlowHandler extends BaseMessageHandler {
     }
     return this.res.status(200).send("Messages processed");
   }
+  /**
+   * Processes individual messages for a given contact from `contactList` sent from control room in request body.
+   * @param {string} WaId - WhatsApp ID of the contact.
+   * @param {string} ProfileName - Profile name of the contact.
+   * @param {string} organizationPhoneNumber - Organization's phone number.
+   * @throws Will throw an error if the flow is not sendable for the organization (configured in database, all information about the flow is sent in request body).
+   */
   async handleBulkMessages(WaId, ProfileName, organizationPhoneNumber) {
     const registeredUser = await this.databaseService.getUser(
       WaId,
@@ -592,12 +612,15 @@ class OutboundFlowHandler extends BaseMessageHandler {
       "WaId": WaId,
       "ProfileName": ProfileName,
     };
-    if (this.flow.flowName === "onboarding") {
-      await this.databaseService.saveUser(userInfo);
-    }
     await this.startFlow({ userInfo, flowName: this.flow.flowName });
     console.log(`Message sent to ${userInfo.ProfileName}`);
   }
+  /**
+   * Initializes a new flow for a given user and flow name.
+   * @param {Object} params - The parameters for starting the flow.
+   * @param {Object} params.userInfo - Information about the user.
+   * @param {string} params.flowName - The name of the flow to start.
+   */
   async startFlow({ userInfo, flowName }) {
     const trackedFlowId = uuidv4();
     const messageData = await this.createMessageData({
@@ -607,6 +630,7 @@ class OutboundFlowHandler extends BaseMessageHandler {
       flowStep: 1,
       flowSection: 1,
     });
+    //Here we don't save the message to the database as it is a request sent from the control room, not an inbound user message so this method doesnt call `databaseService.saveMessage`
     await this.databaseService.saveFlow({
       WaId: userInfo.WaId,
       trackedFlowId,
