@@ -4,6 +4,7 @@ const {
 } = require("../../helpers/messages.helpers");
 const { sendMessage } = require("../../helpers/twilio.helpers");
 const { findTemplateSid } = require("../../helpers/twilio_account.helpers");
+
 async function handleTemplateMessage({
   contactModel,
   userMessage,
@@ -21,7 +22,7 @@ async function handleTemplateMessage({
     false
   );
   const responseMessage = createTemplateMessage({
-    waId: this.WaId,
+    waId: userMessage.WaId,
     contentSid: templateSid,
     templateVariables,
     messagingServiceSid: organizationMessagingServiceSid,
@@ -57,7 +58,7 @@ async function saveAndSendMessage({
     SearchableTemplateName: templateName ?? null,
   };
   const insertedId = await contactModel.saveContactMessage(
-    this.WaId,
+    userMessage.WaId,
     messageToSave
   );
   const sid = await sendMessage(responseMessage);
@@ -68,17 +69,13 @@ async function runStepBasedFlow2({
   flowStep,
   flowName,
 }) {
-  const {
-    userInfo,
-    userMessage,
-    contactModel,
-    organizationMessagingServiceSid,
-  } = flowConstructorParams;
+  const { userMessage, contactModel, organizationMessagingServiceSid } =
+    flowConstructorParams;
   let flowCompletionStatus = false;
   if (flowStep === 5) {
     const text = "This is the end of the flow!";
     const responseMessage = createTextMessage({
-      waId: userInfo.WaId,
+      waId: userMessage.WaId,
       textContent: text,
       messagingServiceSid: organizationMessagingServiceSid,
     });
@@ -95,7 +92,7 @@ async function runStepBasedFlow2({
   if (flowStep >= 2) {
     const text = `The current flow step is ${flowStep}`;
     const responseMessage = createTextMessage({
-      waId: userInfo.WaId,
+      waId: userMessage.WaId,
       textContent: text,
       messagingServiceSid: organizationMessagingServiceSid,
     });

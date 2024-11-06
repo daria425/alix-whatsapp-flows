@@ -5,6 +5,7 @@ const {
   FatMacysSurveyFlow,
 } = require("../services/dn/Flows");
 const { StepBasedFlow } = require("../services/samples/StepBasedFlow");
+const { runStepBasedFlow2 } = require("../services/samples/runStepBasedFlow2");
 const { SupportOptionService } = require("../services/dn/SupportOptionService");
 const { ContactModel } = require("../models/ContactModel");
 const { api_base } = require("../config/llm_api.config");
@@ -192,10 +193,16 @@ async function flowController(req, res, next) {
         cancelSurvey,
         flowSection,
       });
-    } else if (flow === "sample") {
+    } else if (flow === "sample-1") {
       flowCompletionStatus = await runStepBasedFlow({
         flowConstructorParams,
         flowStep,
+      });
+    } else if (flow == "sample-2") {
+      flowCompletionStatus = await runStepBasedFlow2({
+        flowConstructorParams,
+        flowStep,
+        flowName: flow,
       });
     }
     res.status(200).send({ flowCompletionStatus });
