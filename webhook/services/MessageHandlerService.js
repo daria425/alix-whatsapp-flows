@@ -56,7 +56,7 @@ class BaseMessageHandler {
   /**
    * Creates message data to be sent based on the user and flow information.
    * @param {Object} params - Parameters for creating message data.
-   * @param {Object} params.userData - The user data object.
+   * @param {Object} params.userInfo - The user data object.
    * @param {string} params.flowName - The name of the flow.
    * @param {string} params.trackedFlowId - The ID tracking the flow.
    * @param {number} params.flowStep - The current step in the flow.
@@ -66,7 +66,7 @@ class BaseMessageHandler {
    * or to the mock message body recieved from the front-end (req.body in both cases).
    */
   async createMessageData({
-    userData,
+    userInfo,
     flowName,
     trackedFlowId,
     flowStep,
@@ -77,10 +77,10 @@ class BaseMessageHandler {
         this.organizationPhoneNumber
       );
     return {
-      userInfo: userData,
+      userInfo,
       organizationPhoneNumber: this.organizationPhoneNumber,
       organizationMessagingServiceSid,
-      message: {
+      userMessage: {
         ...this.body,
         trackedFlowId,
         clientSideTriggered: this.clientSideTriggered,
@@ -146,7 +146,7 @@ class MessageHandlerService extends BaseMessageHandler {
         this.body.WaId,
         this.organizationPhoneNumber
       );
-      const userData = registeredUser || {
+      const userInfo = registeredUser || {
         "WaId": this.body.WaId,
         "ProfileName": this.body.ProfileName,
       };
@@ -176,17 +176,18 @@ class MessageHandlerService extends BaseMessageHandler {
         return this.res.status(204).send();
       }
       if (!registeredUser || this.body.Body === "test") {
-        await this.onboardUser(userData, messageToSave);
+        await this.onboardUser(userInfo, messageToSave);
       } else if (this.isGreeting()) {
-        await this.startSignpostingFlow(userData, messageToSave);
+        await this.startSignpostingFlow(userInfo, messageToSave);
       } else if (this.isEditDetailsRequest()) {
-        await this.startEditDetailsFlow(userData, messageToSave);
+        await this.startEditDetailsFlow(userInfo, messageToSave);
       } else if (this.isSurveyRequest()) {
-        await this.startFatMacysSurveyFlow(userData, messageToSave);
+        await this.startFatMacysSurveyFlow(userInfo, messageToSave);
       } else if (this.isSample()) {
-        await this.startSampleFlow(userData, messageToSave);
+        const sampleVersion = this.body.Body.split("-")[1];
+        await this.startSampleFlow(userInfo, messageToSave, sampleVersion);
       } else {
-        await this.handleExistingFlow(userData, messageToSave);
+        await this.handleExistingFlow(userInfo, messageToSave);
       }
     } catch (err) {
       console.error(err);
@@ -209,24 +210,24 @@ class MessageHandlerService extends BaseMessageHandler {
     return this.body.Body.toLowerCase().trim() === "survey";
   }
   isSample() {
-    return this.body.Body.toLowerCase().trim() === "sample";
+    return this.body.Body.toLowerCase().split("-")[0] === "sample";
   }
   /**
    * Starts a specific flow based on the user data and message information.
    *
    * @param {Object} params - Parameters for starting the flow.
    *
-   * @param {Object} params.userData - The user data object.
-   * @param {ObjectId} params.userData._id - Unique identifier for the user.
-   * @param {string} params.userData.WaId - WhatsApp ID of the user.
-   * @param {string} params.userData.username - Username of the user.
-   * @param {string} params.userData.ProfileName - Profile name of the user.
-   * @param {ObjectId} params.userData.organizationId - Identifier for the user's organization.
-   * @param {Date} params.userData.CreatedAt - Timestamp when the user was created.
-   * @param {Date} params.userData.LastSeenAt - Timestamp of the user's last activity.
-   * @param {boolean} params.userData.isContactable - Whether the user is contactable.
-   * @param {boolean} params.userData.isAnon - Indicates if the user is anonymous.
-   * @param {boolean} params.userData.reminderSent - Whether a reminder has been sent to the user.
+   * @param {Object} params.userInfo - The user data object.
+   * @param {ObjectId} params.userInfo._id - Unique identifier for the user.
+   * @param {string} params.userInfo.WaId - WhatsApp ID of the user.
+   * @param {string} params.userInfo.username - Username of the user.
+   * @param {string} params.userInfo.ProfileName - Profile name of the user.
+   * @param {ObjectId} params.userInfo.organizationId - Identifier for the user's organization.
+   * @param {Date} params.userInfo.CreatedAt - Timestamp when the user was created.
+   * @param {Date} params.userInfo.LastSeenAt - Timestamp of the user's last activity.
+   * @param {boolean} params.userInfo.isContactable - Whether the user is contactable.
+   * @param {boolean} params.userInfo.isAnon - Indicates if the user is anonymous.
+   * @param {boolean} params.userInfo.reminderSent - Whether a reminder has been sent to the user.
    *
    * @param {Object} params.messageToSave - The message to be saved in the database.
    * @param {ObjectId} params.messageToSave.OrganizationId - Identifier for the organization related to the message.
@@ -253,7 +254,7 @@ class MessageHandlerService extends BaseMessageHandler {
    * @param {boolean} params.extraData.userSelection.endFlow - Whether the flow should end.
    *
    *@example
-   * const userData = {
+   * const userInfo = {
    *   _id: new ObjectId(),
    *   WaId: '-------',
    *   username: 'Daria',
@@ -301,7 +302,7 @@ class MessageHandlerService extends BaseMessageHandler {
    *
    * @returns {Promise<void>}
    */
-  async startFlow({ userData, messageToSave, flowName, extraData }) {
+  async startFlow({ userInfo, messageToSave, flowName, extraData }) {
     const trackedFlowId = uuidv4();
     const updatedMessageToSave = {
       ...messageToSave,
@@ -309,7 +310,7 @@ class MessageHandlerService extends BaseMessageHandler {
       trackedFlowId: trackedFlowId,
     };
     const messageData = await this.createMessageData({
-      userData,
+      userInfo,
       flowName,
       trackedFlowId,
       flowStep: 1,
@@ -317,7 +318,7 @@ class MessageHandlerService extends BaseMessageHandler {
     });
     await createNewFlow({ db: this.firestore, messageData, extraData });
     await this.databaseService.saveFlow({
-      WaId: userData.WaId,
+      WaId: userInfo.WaId,
       trackedFlowId,
       flowName,
       clientSideTriggered: this.clientSideTriggered,
@@ -344,7 +345,7 @@ class MessageHandlerService extends BaseMessageHandler {
   /**
    * Onboards a new user by saving their data and initiating the onboarding flow.
    *
-   * @param {Object} userData - The data of the user to be onboarded.
+   * @param {Object} userInfo - The data of the user to be onboarded.
    * @param {Object} messageToSave - Message data to be saved to the database and used for onboarding.
    *
    * Calls:
@@ -354,15 +355,15 @@ class MessageHandlerService extends BaseMessageHandler {
    * @returns {Promise<void>} - Resolves when the user is successfully onboarded and the flow is started.
    */
 
-  async onboardUser(userData, messageToSave) {
-    await this.databaseService.saveUser(userData, this.organizationPhoneNumber);
-    await this.startFlow({ userData, messageToSave, flowName: "onboarding" });
+  async onboardUser(userInfo, messageToSave) {
+    await this.databaseService.saveUser(userInfo, this.organizationPhoneNumber);
+    await this.startFlow({ userInfo, messageToSave, flowName: "onboarding" });
   }
 
   /**
    * Starts the signposting flow for the user.
    *
-   * @param {Object} userData - The data of the user to start the flow for.
+   * @param {Object} userInfo - The data of the user to start the flow for.
    * @param {Object} messageToSave - Message data to be used in the signposting flow.
    *
    * Calls:
@@ -371,15 +372,15 @@ class MessageHandlerService extends BaseMessageHandler {
    * @returns {Promise<void>} - Resolves when the flow has been started.
    */
 
-  async startSampleFlow(userData, messageToSave) {
+  async startSampleFlow(userInfo, messageToSave, sampleVersion) {
     await this.startFlow({
-      userData,
+      userInfo,
       messageToSave,
-      flowName: "sample",
+      flowName: `sample-${sampleVersion}`,
     });
   }
 
-  async startSignpostingFlow(userData, messageToSave) {
+  async startSignpostingFlow(userInfo, messageToSave) {
     const extraData = {
       userSelection: {
         page: 1,
@@ -387,7 +388,7 @@ class MessageHandlerService extends BaseMessageHandler {
       },
     };
     await this.startFlow({
-      userData,
+      userInfo,
       messageToSave,
       flowName: "signposting",
       extraData,
@@ -397,7 +398,7 @@ class MessageHandlerService extends BaseMessageHandler {
   /**
    * Starts the edit details flow for the user to update information.
    *
-   * @param {Object} userData - The data of the user initiating the edit details flow.
+   * @param {Object} userInfo - The data of the user initiating the edit details flow.
    * @param {Object} messageToSave - Message data to be used in the edit details flow.
    *
    * Calls:
@@ -405,14 +406,14 @@ class MessageHandlerService extends BaseMessageHandler {
    *
    * @returns {Promise<void>} - Resolves when the flow has been started.
    */
-  async startEditDetailsFlow(userData, messageToSave) {
+  async startEditDetailsFlow(userInfo, messageToSave) {
     const extraData = {
       userDetailUpdate: {
         endFlow: false,
       },
     };
     await this.startFlow({
-      userData,
+      userInfo,
       messageToSave,
       flowName: "edit-details",
       extraData,
@@ -422,7 +423,7 @@ class MessageHandlerService extends BaseMessageHandler {
   /**
    * Starts the survey flow for the user.
    *
-   * @param {Object} userData - The data of the user to start the survey flow for.
+   * @param {Object} userInfo - The data of the user to start the survey flow for.
    * @param {Object} messageToSave - Message data to be used in the survey flow.
    *
    * Calls:
@@ -430,9 +431,9 @@ class MessageHandlerService extends BaseMessageHandler {
    *
    * @returns {Promise<void>} - Resolves when the survey flow has been started.
    */
-  async startFatMacysSurveyFlow(userData, messageToSave) {
+  async startFatMacysSurveyFlow(userInfo, messageToSave) {
     await this.startFlow({
-      userData,
+      userInfo,
       messageToSave,
       flowName: "survey",
     });
@@ -443,18 +444,18 @@ class MessageHandlerService extends BaseMessageHandler {
    * Handles an existing flow for the user based on their current flow status.
    * This method retrieves the user's current flow and advances the flow step
    * based on user input or "See More Options" conditions.
-   * @param {Object} userData - The user's data.
+   * @param {Object} userInfo - The user's data.
    * @param {Object} messageToSave - Message data to be saved.
    * Calls:
    *  - `getCurrentFlow`: retrieves the flow that the user is currently in from Firestore object
    *  - `createMessageData`: @see {@link createMessageData}
-   *  - `databaseService.updateFlowStatus`: updates the flow status to in progress, if a flow already exists for the user that means that
+   *  - `databaseService.updateFlowStatus`: updates the flow status to "in_progress", if a flow already exists for the user that means that
    * the message recieved from the Twilio API is a response to an outbound message sent.
    *  -
    * @returns {Promise<void>}
    */
-  async handleExistingFlow(userData, messageToSave) {
-    const currentFlow = await getCurrentFlow(this.firestore, userData);
+  async handleExistingFlow(userInfo, messageToSave) {
+    const currentFlow = await getCurrentFlow(this.firestore, userInfo);
     const { flowName, flowStep, id: flowId } = currentFlow;
     let updatedFlowStep = flowStep;
     if (!this.seeMoreOptionMessages.includes(this.body.Body)) {
@@ -462,7 +463,7 @@ class MessageHandlerService extends BaseMessageHandler {
     }
     console.log("updated flow step", updatedFlowStep);
     const messageData = await this.createMessageData({
-      userData,
+      userInfo,
       flowName,
       trackedFlowId: flowId,
       flowStep: updatedFlowStep,
@@ -659,27 +660,27 @@ class FlowTriggerService extends BaseMessageHandler {
     if (!this.flow.isSendable) {
       throw new Error("Flow not enabled for this organization");
     }
-    const userData = registeredUser || {
+    const userInfo = registeredUser || {
       "WaId": WaId,
       "ProfileName": ProfileName,
     };
     if (this.flow.flowName === "onboarding") {
-      await this.databaseService.saveUser(userData);
+      await this.databaseService.saveUser(userInfo);
     }
-    await this.startFlow({ userData, flowName: this.flow.flowName });
-    console.log(`Message sent to ${userData.ProfileName}`);
+    await this.startFlow({ userInfo, flowName: this.flow.flowName });
+    console.log(`Message sent to ${userInfo.ProfileName}`);
   }
-  async startFlow({ userData, flowName }) {
+  async startFlow({ userInfo, flowName }) {
     const trackedFlowId = uuidv4();
     const messageData = await this.createMessageData({
-      userData,
+      userInfo,
       flowName,
       trackedFlowId,
       flowStep: 1,
       flowSection: 1,
     });
     await this.databaseService.saveFlow({
-      WaId: userData.WaId,
+      WaId: userInfo.WaId,
       trackedFlowId,
       flowName,
       clientSideTriggered: this.clientSideTriggered,

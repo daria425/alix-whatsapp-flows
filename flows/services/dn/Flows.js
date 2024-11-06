@@ -18,22 +18,20 @@ class OnboardingFlow extends BaseFlow {
   };
   static FINAL_FLOW_STEP = 8;
 
-  constructor(
-    db,
+  constructor({
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  ) {
-    super(
-      db,
+    organizationMessagingServiceSid,
+  }) {
+    super({
       userInfo,
       userMessage,
       contactModel,
       organizationPhoneNumber,
-      organizationMessagingServiceSid
-    );
+      organizationMessagingServiceSid,
+    });
   }
   async handleFlowStep(flowStep) {
     let flowCompletionStatus = false;
@@ -145,22 +143,20 @@ class OnboardingFlow extends BaseFlow {
 }
 class SignpostingFlow extends BaseFlow {
   static FLOW_NAME = "signposting";
-  constructor(
-    db,
+  constructor({
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  ) {
-    super(
-      db,
+    organizationMessagingServiceSid,
+  }) {
+    super({
       userInfo,
       userMessage,
       contactModel,
       organizationPhoneNumber,
-      organizationMessagingServiceSid
-    );
+      organizationMessagingServiceSid,
+    });
     this.signpostingTemplates = {};
   }
   async init() {
@@ -381,22 +377,20 @@ class SignpostingFlow extends BaseFlow {
 
 class EditDetailsFlow extends BaseFlow {
   static FLOW_NAME = "edit-details";
-  constructor(
-    db,
+  constructor({
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  ) {
-    super(
-      db,
+    organizationMessagingServiceSid,
+  }) {
+    super({
       userInfo,
       userMessage,
       contactModel,
       organizationPhoneNumber,
-      organizationMessagingServiceSid
-    );
+      organizationMessagingServiceSid,
+    });
   }
   async handleFlowStep(flowStep, userDetailUpdate) {
     let flowCompletionStatus = false;
@@ -482,22 +476,20 @@ class FatMacysSurveyFlow extends BaseFlow {
   static FLOW_NAME = "survey";
   static LAST_SECTION = 7;
   static LAST_STEP = 6;
-  constructor(
-    db,
+  constructor({
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  ) {
-    super(
-      db,
+    organizationMessagingServiceSid,
+  }) {
+    super({
       userInfo,
       userMessage,
       contactModel,
       organizationPhoneNumber,
-      organizationMessagingServiceSid
-    );
+      organizationMessagingServiceSid,
+    });
   }
   async handleFlowStep(flowStep, flowSection, cancelSurvey) {
     let flowCompletionStatus = false;

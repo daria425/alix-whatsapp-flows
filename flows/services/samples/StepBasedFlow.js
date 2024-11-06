@@ -1,24 +1,21 @@
 const { BaseFlow } = require("../BaseFlow");
 const { createTextMessage } = require("../../helpers/messages.helpers");
-class SampleFlow extends BaseFlow {
+class StepBasedFlow extends BaseFlow {
   static FLOW_NAME = "sample";
-
-  constructor(
-    db,
+  constructor({
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  ) {
-    super(
-      db,
+    organizationMessagingServiceSid,
+  }) {
+    super({
       userInfo,
       userMessage,
       contactModel,
       organizationPhoneNumber,
-      organizationMessagingServiceSid
-    );
+      organizationMessagingServiceSid,
+    });
   }
   async handleTemplateMessage({ templateKey, templateVariables, updateData }) {
     if (updateData) {
@@ -27,7 +24,7 @@ class SampleFlow extends BaseFlow {
     await this.saveAndSendTemplateMessage({
       templateKey,
       templateVariables,
-      flowName: SampleFlow.FLOW_NAME,
+      flowName: StepBasedFlow.FLOW_NAME,
     });
   }
 
@@ -40,7 +37,7 @@ class SampleFlow extends BaseFlow {
         textContent: text,
         messagingServiceSid: this.messagingServiceSid,
       });
-      await this.saveAndSendTextMessage(textMessage, SampleFlow.FLOW_NAME);
+      await this.saveAndSendTextMessage(textMessage, StepBasedFlow.FLOW_NAME);
       flowCompletionStatus = true;
       return flowCompletionStatus;
     }
@@ -51,7 +48,7 @@ class SampleFlow extends BaseFlow {
         textContent: text,
         messagingServiceSid: this.messagingServiceSid,
       });
-      await this.saveAndSendTextMessage(textMessage, SampleFlow.FLOW_NAME);
+      await this.saveAndSendTextMessage(textMessage, StepBasedFlow.FLOW_NAME);
     } else {
       await this.handleTemplateMessage({ templateKey: "sample_message" });
     }
@@ -60,5 +57,5 @@ class SampleFlow extends BaseFlow {
 }
 
 module.exports = {
-  SampleFlow,
+  StepBasedFlow,
 };

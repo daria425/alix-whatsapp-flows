@@ -5,20 +5,18 @@ const {
 const { sendMessage } = require("../helpers/twilio.helpers");
 const { findTemplateSid } = require("../helpers/twilio_account.helpers");
 class BaseFlow {
-  constructor(
-    db,
+  constructor({
     userInfo,
-    userMessage,
+    userMessage = {},
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  ) {
-    this.db = db;
+    organizationMessagingServiceSid,
+  }) {
     this.userInfo = userInfo;
     this.WaId = userInfo.WaId;
     this.userMessage = userMessage;
-    this.messageContent = this.userMessage?.Body;
-    this.buttonPayload = this.userMessage?.ButtonPayload ?? "-";
+    this.messageContent = userMessage?.Body;
+    this.buttonPayload = userMessage?.ButtonPayload ?? "-";
     this.listId = userMessage?.ListId;
     this.contactModel = contactModel;
     this.organizationPhoneNumber = organizationPhoneNumber;

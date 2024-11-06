@@ -4,31 +4,32 @@ const {
   EditDetailsFlow,
   FatMacysSurveyFlow,
 } = require("../services/dn/Flows");
-const { SampleFlow } = require("../services/samples/SampleFlow");
+const { StepBasedFlow } = require("../services/samples/StepBasedFlow");
 const { SupportOptionService } = require("../services/dn/SupportOptionService");
 const { ContactModel } = require("../models/ContactModel");
 const { api_base } = require("../config/llm_api.config");
 const { LLMService } = require("../services/dn/LLMService");
 
 async function runSurveyFlow({
-  db,
-  contactModel,
-  userInfo,
+  flowConstructorParams,
   flowStep,
-  userMessage,
-  organizationPhoneNumber,
-  organizationMessagingServiceSid,
   cancelSurvey,
   flowSection,
 }) {
-  const surveyFlow = new FatMacysSurveyFlow(
-    db,
+  const {
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  );
+    organizationMessagingServiceSid,
+  } = flowConstructorParams;
+  const surveyFlow = new FatMacysSurveyFlow({
+    userInfo,
+    userMessage,
+    contactModel,
+    organizationPhoneNumber,
+    organizationMessagingServiceSid,
+  });
   const flowCompletionStatus = await surveyFlow.handleFlowStep(
     flowStep,
     flowSection,
@@ -36,45 +37,45 @@ async function runSurveyFlow({
   );
   return flowCompletionStatus;
 }
-async function runOnboardingFlow({
-  db,
-  contactModel,
-  userInfo,
-  flowStep,
-  userMessage,
-  organizationPhoneNumber,
-  organizationMessagingServiceSid,
-}) {
-  const onboardingFlow = new OnboardingFlow(
-    db,
+async function runOnboardingFlow({ flowStep, flowConstructorParams }) {
+  const {
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  );
+    organizationMessagingServiceSid,
+  } = flowConstructorParams;
+  const onboardingFlow = new OnboardingFlow({
+    userInfo,
+    userMessage,
+    contactModel,
+    organizationPhoneNumber,
+    organizationMessagingServiceSid,
+  });
   const flowCompletionStatus = await onboardingFlow.handleFlowStep(flowStep);
   return flowCompletionStatus;
 }
 
 async function runSignpostingFlow({
   db,
-  contactModel,
-  userInfo,
+  flowConstructorParams,
   flowStep,
-  userMessage,
-  organizationPhoneNumber,
-  organizationMessagingServiceSid,
   userSelection,
 }) {
-  const signpostingFlow = new SignpostingFlow(
-    db,
+  const {
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  );
+    organizationMessagingServiceSid,
+  } = flowConstructorParams;
+  const signpostingFlow = new SignpostingFlow({
+    userInfo,
+    userMessage,
+    contactModel,
+    organizationPhoneNumber,
+    organizationMessagingServiceSid,
+  });
   const supportOptionService = new SupportOptionService(db);
   const llmService = new LLMService(api_base);
   const flowCompletionStatus = await signpostingFlow.handleFlowStep(
@@ -87,45 +88,46 @@ async function runSignpostingFlow({
 }
 
 async function runEditDetailsFlow({
-  db,
-  contactModel,
-  userInfo,
   flowStep,
-  userMessage,
-  organizationPhoneNumber,
+  flowConstructorParams,
   userDetailUpdate,
 }) {
-  const editDetailsFlow = new EditDetailsFlow(
-    db,
+  const {
     userInfo,
     userMessage,
     contactModel,
-    organizationPhoneNumber
-  );
+    organizationPhoneNumber,
+    organizationMessagingServiceSid,
+  } = flowConstructorParams;
+  const editDetailsFlow = new EditDetailsFlow({
+    userInfo,
+    userMessage,
+    contactModel,
+    organizationPhoneNumber,
+    organizationMessagingServiceSid,
+  });
   const flowCompletionStatus = await editDetailsFlow.handleFlowStep(
     flowStep,
     userDetailUpdate
   );
   return flowCompletionStatus;
 }
-async function runSampleFlow({
-  db,
-  userInfo,
-  userMessage,
-  contactModel,
-  organizationPhoneNumber,
-  organizationMessagingServiceSid,
-  flowStep,
-}) {
-  const sampleFlow = new SampleFlow(
-    db,
+async function runStepBasedFlow({ flowConstructorParams, flowStep }) {
+  const {
     userInfo,
     userMessage,
     contactModel,
     organizationPhoneNumber,
-    organizationMessagingServiceSid
-  );
-  await sampleFlow.handleFlowStep(flowStep);
+    organizationMessagingServiceSid,
+  } = flowConstructorParams;
+  const stepBasedFlow = new StepBasedFlow({
+    userInfo,
+    userMessage,
+    contactModel,
+    organizationPhoneNumber,
+    organizationMessagingServiceSid,
+  });
+  await stepBasedFlow.handleFlowStep(flowStep);
 }
 async function flowController(req, res, next) {
   const db = req.app.locals.db;
@@ -135,7 +137,7 @@ async function flowController(req, res, next) {
     const {
       userInfo,
       organizationPhoneNumber,
-      message,
+      userMessage,
       flowStep,
       startTime,
       organizationMessagingServiceSid,
@@ -149,67 +151,51 @@ async function flowController(req, res, next) {
       startTime,
       organizationPhoneNumber
     );
-    if (message.Body === "OPT-OUT") {
+    if (userMessage.Body === "OPT-OUT") {
       await contactModel.updateContact(userInfo.WaId, { "opted_in": false });
       return res.status(200).send({ flowCompletionStatus: true });
     }
+    const flowConstructorParams = {
+      contactModel,
+      userInfo,
+      flowStep,
+      userMessage,
+      organizationMessagingServiceSid,
+      organizationPhoneNumber,
+    };
     if (flow === "onboarding") {
       flowCompletionStatus = await runOnboardingFlow({
-        db,
-        contactModel,
-        userInfo,
         flowStep,
-        userMessage: message,
-        organizationMessagingServiceSid,
-        organizationPhoneNumber,
+        flowConstructorParams,
       });
     } else if (flow === "signposting") {
       const userSelection = req.body.userSelection;
       flowCompletionStatus = await runSignpostingFlow({
         db,
-        contactModel,
-        userInfo,
+        flowConstructorParams,
         flowStep,
-        userMessage: message,
-        organizationPhoneNumber,
-        organizationMessagingServiceSid,
         userSelection,
       });
     } else if (flow === "edit-details") {
       const userDetailUpdate = req.body?.userDetailUpdate;
       flowCompletionStatus = await runEditDetailsFlow({
-        db,
-        contactModel,
-        userInfo,
+        flowConstructorParams,
         flowStep,
-        userMessage: message,
-        organizationPhoneNumber,
-        organizationMessagingServiceSid,
         userDetailUpdate,
       });
     } else if (flow === "survey") {
       const cancelSurvey = req.body.cancelSurvey;
       const flowSection = req.body.flowSection;
       flowCompletionStatus = await runSurveyFlow({
-        db,
-        contactModel,
-        userInfo,
+        flowConstructorParams,
         flowStep,
-        userMessage: message,
-        organizationPhoneNumber,
-        organizationMessagingServiceSid,
         cancelSurvey,
         flowSection,
       });
     } else if (flow === "sample") {
-      flowCompletionStatus = await runSampleFlow({
-        db,
-        contactModel,
-        userInfo,
+      flowCompletionStatus = await runStepBasedFlow({
+        flowConstructorParams,
         flowStep,
-        userMessage: message,
-        organizationMessagingServiceSid,
-        organizationPhoneNumber,
       });
     }
     res.status(200).send({ flowCompletionStatus });
