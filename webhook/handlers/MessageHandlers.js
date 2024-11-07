@@ -1,13 +1,3 @@
-const {
-  createNewFlow,
-  getCurrentFlow,
-  deleteFlowOnCompletion,
-  deleteFlowOnErr,
-  updateUserSelection,
-  createUserDetailUpdate,
-  createCancelSurveyUpdate,
-  createNextSectionUpdate,
-} = require("../helpers/firestore.helpers");
 const { createTranscriptionTask } = require("../helpers/cloud_tasks.helpers");
 const { v4: uuidv4 } = require("uuid");
 const { BaseMessageHandler } = require("./BaseMessageHandler");
@@ -109,8 +99,7 @@ class InboundMessageHandler extends BaseMessageHandler {
       }
     } catch (err) {
       console.error(err);
-      await deleteFlowOnErr({
-        db: this.firestore,
+      await this.flowManagerService.deleteFlowOnErr({
         userId: this.body.WaId,
         err,
       });
@@ -235,7 +224,7 @@ class InboundMessageHandler extends BaseMessageHandler {
       flowStep: 1,
       flowSection: 1,
     });
-    await createNewFlow({ db: this.firestore, messageData, extraData });
+    await this.flowManagerService.createNewFlow({ messageData, extraData });
     await this.databaseService.saveFlow({
       WaId: userInfo.WaId,
       trackedFlowId,
@@ -385,7 +374,7 @@ class InboundMessageHandler extends BaseMessageHandler {
    * @returns {Promise<void>}
    */
   async handleExistingFlow(userInfo, messageToSave) {
-    const currentFlow = await getCurrentFlow(this.firestore, userInfo);
+    const currentFlow = await this.flowManagerService.getCurrentFlow(userInfo);
     const { flowName, flowStep, id: flowId } = currentFlow;
     let updatedFlowStep = flowStep;
     if (!this.seeMoreOptionMessages.includes(this.body.Body)) {
@@ -423,8 +412,7 @@ class InboundMessageHandler extends BaseMessageHandler {
       );
       messageData.cancelSurvey = await this.updateSurveyCancellation(flowId);
       const buttonPayload = this.body?.ButtonPayload ?? ""; // Default to empty string if ButtonPayload doesn't exist
-      const updatedDoc = await createNextSectionUpdate(
-        this.firestore,
+      const updatedDoc = await this.flowManagerService.createNextSectionUpdate(
         this.body.WaId,
         buttonPayload
       );
@@ -456,8 +444,7 @@ class InboundMessageHandler extends BaseMessageHandler {
    */
 
   async updateUserSignpostingSelection(flowId, currentFlowStep) {
-    const updatedDoc = await updateUserSelection({
-      db: this.firestore,
+    const updatedDoc = await this.flowManagerService.updateUserSelection({
       flowId,
       flowStep: currentFlowStep,
       selectionValue: this.body.Body,
@@ -472,8 +459,7 @@ class InboundMessageHandler extends BaseMessageHandler {
    * @returns {Promise<string>} - The updated user detail.
    */
   async updateUserDetail(flowId, currentFlowStep) {
-    const updatedDoc = await createUserDetailUpdate({
-      db: this.firestore,
+    const updatedDoc = await this.flowManagerService.createUserDetailUpdate({
       flowId,
       flowStep: currentFlowStep,
       selectionValue: this.body.Body,
@@ -488,8 +474,7 @@ class InboundMessageHandler extends BaseMessageHandler {
    * @returns {Promise<string>} - The updated cancellation status.
    */
   async updateSurveyCancellation(flowId) {
-    const updatedDoc = await createCancelSurveyUpdate({
-      db: this.firestore,
+    const updatedDoc = await this.flowManagerService.createCancelSurveyUpdate({
       flowId,
       selectionValue: this.body.ButtonPayload,
     });
@@ -513,7 +498,7 @@ class InboundMessageHandler extends BaseMessageHandler {
     );
     if (response.data.flowCompletionStatus) {
       await this.databaseService.updateFlowStatus(flowId, "completed");
-      await deleteFlowOnCompletion(this.firestore, flowId);
+      await this.flowManagerService.deleteFlowOnCompletion(flowId);
     }
     const updatedMessageToSave = {
       ...messageToSave,
@@ -640,7 +625,7 @@ class OutboundFlowHandler extends BaseMessageHandler {
       organizationPhoneNumber: this.organizationPhoneNumber,
     });
 
-    await createNewFlow({ db: this.firestore, messageData });
+    await this.flowManagerService.createNewFlow({ messageData });
     await this.postRequestService.make_request(
       `flows/${flowName}`,
       messageData

@@ -4,6 +4,7 @@ const {
   transcription_api_base,
 } = require("../config/api_base.config");
 const { DatabaseService } = require("../services/DatabaseService");
+const { FlowManagerService } = require("../services/FlowManagerService");
 /**
  * Base class for handling message operations.
  */
@@ -34,6 +35,7 @@ class BaseMessageHandler {
       transcription_api_base
     );
     this.databaseService = new DatabaseService(req.app.locals.db);
+    this.flowManagerService = new FlowManagerService(firestore);
     this.organizationPhoneNumber = organizationPhoneNumber;
     this.firestore = firestore;
     this.body = req.body;

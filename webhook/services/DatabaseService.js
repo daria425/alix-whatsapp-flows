@@ -153,7 +153,7 @@ class DatabaseService {
       await this.updateOrganizationWithContact(organizationNumber, insertedId);
     } catch (err) {
       console.error(err);
-      throw err; // Consider re-throwing for higher-level error handling
+      throw err;
     }
   }
 
