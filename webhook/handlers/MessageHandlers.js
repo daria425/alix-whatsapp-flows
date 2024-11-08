@@ -420,10 +420,10 @@ class InboundMessageHandler extends BaseMessageHandler {
         this.body.MessageSid
       );
       messageData.cancelSurvey = await this.updateSurveyCancellation(flowId);
-      const buttonPayload = this.body?.ButtonPayload ?? ""; // Default to empty string if ButtonPayload doesn't exist
+
       const updatedDoc = await this.flowManagerService.createNextSectionUpdate(
         this.body.WaId,
-        buttonPayload
+        this.buttonPayload
       );
       messageData.flowSection = updatedDoc.flowSection;
       messageData.flowStep = updatedDoc.flowStep;
@@ -484,7 +484,7 @@ class InboundMessageHandler extends BaseMessageHandler {
   async updateSurveyCancellation(flowId) {
     const updatedDoc = await this.flowManagerService.createCancelSurveyUpdate({
       flowId,
-      selectionValue: this.body.ButtonPayload,
+      selectionValue: this.buttonPayload,
     });
     return updatedDoc.cancelSurvey;
   }

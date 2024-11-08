@@ -41,6 +41,7 @@ class BaseMessageHandler {
     this.body = req.body;
     this.res = res;
     this.clientSideTriggered = clientSideTriggered;
+    this.buttonPayload = this.body?.ButtonPayload ?? "";
     this.isReminder = isReminder;
   }
   /**
