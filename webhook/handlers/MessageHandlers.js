@@ -9,7 +9,17 @@ const { surveyConfig } = require("../config/survey.config");
  */
 class InboundMessageHandler extends BaseMessageHandler {
   /**
+   * @static
+   * @type {Array<string>}
+   * @description Predefined messages to determine whether to paginate the results returned to the user during the signposting flow (getting next page)
+   */
+  static SEE_MORE_OPTIONS_MESSAGES = [
+    "See More Options",
+    "That's great, thanks",
+  ]; //TO-DO refactor to use button id
+  /**
    * Creates an instance of InboundMessageHandler.
+   * @constructor
    * @param {Object} params - Parameters for the handler.
    * @param {Object} params.req - The request object.
    * @param {Object} params.res - The response object.
@@ -18,7 +28,6 @@ class InboundMessageHandler extends BaseMessageHandler {
    * @param {boolean} params.clientSideTriggered - Indicates if the request was triggered from the client side.
    * @param {boolean} params.isReminder - Indicates if this is a reminder message.
    */
-
   constructor({
     req,
     res,
@@ -35,8 +44,6 @@ class InboundMessageHandler extends BaseMessageHandler {
       clientSideTriggered,
       isReminder,
     });
-    this.seeMoreOptionMessages = ["See More Options", "That's great, thanks"];
-    this.addUpdateMessages = ["Yes", "No thanks"];
   }
 
   /**
@@ -377,9 +384,11 @@ class InboundMessageHandler extends BaseMessageHandler {
     const currentFlow = await this.flowManagerService.getCurrentFlow(userInfo);
     const { flowName, flowStep, id: flowId } = currentFlow;
     let updatedFlowStep = flowStep;
-    if (!this.seeMoreOptionMessages.includes(this.body.Body)) {
+    if (
+      !InboundMessageHandler.SEE_MORE_OPTIONS_MESSAGES.includes(this.body.Body)
+    ) {
       updatedFlowStep += 1; //Signposting flow specific bit of logic, advances the current flow step for all other flows, handles the pagination of search results in signposting
-    }
+    } //This is some technical debt, honestly not sure whats happening here but its not hurting anyone so
     console.log("updated flow step", updatedFlowStep);
     const messageData = await this.createMessageData({
       userInfo,
@@ -448,7 +457,7 @@ class InboundMessageHandler extends BaseMessageHandler {
       flowId,
       flowStep: currentFlowStep,
       selectionValue: this.body.Body,
-      seeMoreOptionMessages: this.seeMoreOptionMessages,
+      seeMoreOptionMessages: InboundMessageHandler.SEE_MORE_OPTIONS_MESSAGES,
     });
     return updatedDoc?.userSelection;
   }
@@ -463,7 +472,6 @@ class InboundMessageHandler extends BaseMessageHandler {
       flowId,
       flowStep: currentFlowStep,
       selectionValue: this.body.Body,
-      addUpdateMessages: this.addUpdateMessages,
     });
     return updatedDoc?.userDetailUpdate;
   }
