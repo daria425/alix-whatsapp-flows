@@ -55,7 +55,7 @@ const { firestore } = require("../config/firestore.config");
 
 async function handleMessage(req, res, next) {
   try {
-    console.log(req.body);
+    console.log("REQ BODY", req.body);
     /**
      * Determines the appropriate service to handle the message based on
      * the presence of a "client-side-trigger" header.

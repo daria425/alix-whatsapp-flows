@@ -53,15 +53,17 @@ class InboundMessageHandler extends BaseMessageHandler {
 
   async handle() {
     try {
+      // get organization from database by phone number to save the inbound message with its ID
       const organization = await this.databaseService.getOrganization(
         this.organizationPhoneNumber
       );
-      console.log(organization);
+      // get the contact information from the database (if the user has messaged the number previously their details will have been stored)
       const registeredUser = await this.databaseService.getUser(
         this.body.WaId,
         this.organizationPhoneNumber
       );
       const userInfo = registeredUser || {
+        //extract user information to be used in the flows later and sent to the Flows microservice
         "WaId": this.body.WaId,
         "ProfileName": this.body.ProfileName,
       };
@@ -73,23 +75,16 @@ class InboundMessageHandler extends BaseMessageHandler {
         Direction: "inbound",
         Status: "recieved",
       };
-
-      if (this.body.Body === "OPT-OUT") {
+      //Pre-configured opt-out & opt-in messages, functionality is mostly handled by Twilio, but we update the user information by default as well
+      if (this.body.Body === "OPT-OUT" || this.body.Body === "OPT-IN") {
         await this.databaseService.updateUser(
           this.body.WaId,
           this.organizationPhoneNumber,
-          { "opted_in": false }
+          { "opted_in": this.body.Body === "OPT-OUT" ? false : true }
         );
         return this.res.status(204).send();
       }
-      if (this.body.Body === "OPT-IN") {
-        await this.databaseService.updateUser(
-          this.body.WaId,
-          this.organizationPhoneNumber,
-          { "opted_in": true }
-        );
-        return this.res.status(204).send();
-      }
+      //check if the text of the first message is a preconfigured "trigger" message for a flow to start
       if (!registeredUser || this.body.Body === "test") {
         await this.onboardUser(userInfo, messageToSave);
       } else if (this.isGreeting()) {
@@ -102,6 +97,10 @@ class InboundMessageHandler extends BaseMessageHandler {
         const sampleVersion = this.body.Body.split("-")[1];
         await this.startSampleFlow(userInfo, messageToSave, sampleVersion);
       } else {
+        //if not a "trigger" message, calls handleExistingFlow
+        /**
+         * @see {@link handleExistingFlow}
+         */
         await this.handleExistingFlow(userInfo, messageToSave);
       }
     } catch (err) {
