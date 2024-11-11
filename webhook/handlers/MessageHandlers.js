@@ -87,13 +87,13 @@ class InboundMessageHandler extends BaseMessageHandler {
       //check if the text of the first message is a preconfigured "trigger" message for a flow to start
       if (!registeredUser || this.body.Body === "test") {
         await this.onboardUser(userInfo, messageToSave);
-      } else if (this.isGreeting()) {
+      } else if (this.isSignpostingTrigger()) {
         await this.startSignpostingFlow(userInfo, messageToSave);
-      } else if (this.isEditDetailsRequest()) {
+      } else if (this.isEditDetailsTrigger()) {
         await this.startEditDetailsFlow(userInfo, messageToSave);
-      } else if (this.isSurveyRequest()) {
+      } else if (this.isSurveyTrigger()) {
         await this.startFatMacysSurveyFlow(userInfo, messageToSave);
-      } else if (this.isSample()) {
+      } else if (this.isSampleTrigger()) {
         const sampleVersion = this.body.Body.split("-")[1];
         await this.startSampleFlow(userInfo, messageToSave, sampleVersion);
       } else {
@@ -113,17 +113,17 @@ class InboundMessageHandler extends BaseMessageHandler {
     }
   }
   //functions to select the flow to start based off the inbound message
-  isGreeting() {
+  isSignpostingTrigger() {
     return this.body.Body.toLowerCase().trim() === "hi";
   }
 
-  isEditDetailsRequest() {
+  isEditDetailsTrigger() {
     return this.body.Body.toLowerCase().trim() === "edit details";
   }
-  isSurveyRequest() {
+  isSurveyTrigger() {
     return this.body.Body.toLowerCase().trim() === "survey";
   }
-  isSample() {
+  isSampleTrigger() {
     return this.body.Body.toLowerCase().split("-")[0] === "sample";
   }
   /**
@@ -217,12 +217,12 @@ class InboundMessageHandler extends BaseMessageHandler {
    * @returns {Promise<void>}
    */
   async startFlow({ userInfo, messageToSave, flowName, extraData }) {
-    const trackedFlowId = uuidv4();
+    const trackedFlowId = uuidv4(); //create an ID to track the flow by
     const updatedMessageToSave = {
       ...messageToSave,
       Flow: flowName,
       trackedFlowId: trackedFlowId,
-    };
+    }; //add the flow name and ID to the message that will be saved
     const messageData = await this.createMessageData({
       userInfo,
       flowName,
@@ -230,7 +230,8 @@ class InboundMessageHandler extends BaseMessageHandler {
       flowStep: 1,
       flowSection: 1,
     });
-    await this.flowManagerService.createNewFlow({ messageData, extraData });
+    await this.flowManagerService.createNewFlow({ messageData, extraData }); //new flow created in firestore, will be retrieved by `handleExistingFlow` on the next message from the user
+    //flow saved to mongoDB
     await this.databaseService.saveFlow({
       WaId: userInfo.WaId,
       trackedFlowId,
@@ -239,14 +240,17 @@ class InboundMessageHandler extends BaseMessageHandler {
       organizationPhoneNumber: this.organizationPhoneNumber,
       isReminder: this.isReminder,
     });
+    //HTTP POST request is made to the Flows API (flows/signposting), containing messageData returned from `createMessageData` in the request body
     await this.postRequestService.make_request(
       `flows/${flowName}`,
       messageData
     );
+    //message with phone number of the organization saved to the database
     await this.databaseService.saveMessage(
       updatedMessageToSave,
       this.organizationPhoneNumber
     );
+    //audio-transcription
     if (updatedMessageToSave.MessageType === "audio") {
       await createTranscriptionTask(
         updatedMessageToSave.MediaUrl0,
@@ -380,6 +384,7 @@ class InboundMessageHandler extends BaseMessageHandler {
    * @returns {Promise<void>}
    */
   async handleExistingFlow(userInfo, messageToSave) {
+    //retrieve current flow from Firestore
     const currentFlow = await this.flowManagerService.getCurrentFlow(userInfo);
     const { flowName, flowStep, id: flowId } = currentFlow;
     let updatedFlowStep = flowStep;
@@ -388,7 +393,6 @@ class InboundMessageHandler extends BaseMessageHandler {
     ) {
       updatedFlowStep += 1; //Signposting flow specific bit of logic, advances the current flow step for all other flows, handles the pagination of search results in signposting
     } //This is some technical debt, honestly not sure whats happening here but its not hurting anyone so
-    console.log("updated flow step", updatedFlowStep);
     const messageData = await this.createMessageData({
       userInfo,
       flowName,
@@ -397,7 +401,8 @@ class InboundMessageHandler extends BaseMessageHandler {
       flowSection: 1,
     });
     await this.databaseService.updateFlowStatus(flowId, "in_progress");
-    // Update flow start time if it's the initial step
+    // Update flow start time if it's the initial step, the fact that flow step is 2 means that the current message from the user is a response to the flow message that they triggered
+    // so we consider that they "officially" begin the flow here
     if (messageData.flowStep === 2 && messageData.flowSection === 1) {
       await this.databaseService.updateFlowStartTime(flowId);
     }
@@ -435,8 +440,6 @@ class InboundMessageHandler extends BaseMessageHandler {
         });
       }
     }
-    console.log("message to be sent", messageData);
-
     await this.processFlowResponse({
       flowName,
       messageToSave,
@@ -499,14 +502,17 @@ class InboundMessageHandler extends BaseMessageHandler {
    * @returns {Promise<void>}
    */
   async processFlowResponse({ flowName, messageToSave, messageData, flowId }) {
+    //HTTP POST request is made to the Flows API, containing messageData returned from `createMessageData` in the request body
     const response = await this.postRequestService.make_request(
       `flows/${flowName}`,
       messageData
     );
+    //Flows API sends back flowCompletionStatus in the response body, if true, flow status is set to "completed in Mongo" and deleted from Firestore (deleteFlowOnCompletion)
     if (response.data.flowCompletionStatus) {
       await this.databaseService.updateFlowStatus(flowId, "completed");
       await this.flowManagerService.deleteFlowOnCompletion(flowId);
     }
+    //message is updated
     const updatedMessageToSave = {
       ...messageToSave,
       Flow: flowName,
@@ -522,7 +528,6 @@ class InboundMessageHandler extends BaseMessageHandler {
         updatedMessageToSave.MessageSid
       );
     }
-    console.log(response.data);
     this.res.status(204).send();
   }
 }
