@@ -17,8 +17,8 @@ async function initializeDatabases(app, primaryDbConfig, secondaryDbConfig) {
     const { secondaryDbName, secondaryDbUri } = secondaryDbConfig;
     const primaryDb = await connectToDB(primaryDbUri, primaryDbName);
     const secondaryDb = await connectToDB(secondaryDbUri, secondaryDbName);
-    app.locals.db = primaryDb;
-    app.locals.secondaryDb = secondaryDb;
+    app.locals.signpostingOptionsDb = primaryDb;
+    app.locals.controlRoomDb = secondaryDb;
     console.log("Databases initialized");
   } catch (err) {
     console.error("Error initializing databases:", err);

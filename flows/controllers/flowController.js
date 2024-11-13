@@ -11,6 +11,18 @@ const { ContactModel } = require("../models/ContactModel");
 const { api_base } = require("../config/llm_api.config");
 const { LLMService } = require("../services/dn/LLMService");
 
+/**
+ * Executes the survey flow for a user interaction.
+ * @async
+ * @function
+ * @param {Object} params - Parameters for running the survey flow.
+ * @param {Object} params.flowConstructorParams - Common parameters to initialize a flow.
+ * @param {Object} params.flowStep - The current step of the flow.
+ * @param {boolean} params.cancelSurvey - Indicates if the survey should be canceled.
+ * @param {string} params.flowSection - The section of the survey flow to be executed.
+ * @returns {Promise<boolean>} The completion status of the flow.
+ */
+
 async function runSurveyFlow({
   flowConstructorParams,
   flowStep,
@@ -38,6 +50,16 @@ async function runSurveyFlow({
   );
   return flowCompletionStatus;
 }
+/**
+ * Executes the onboarding flow.
+ *
+ * @async
+ * @function
+ * @param {Object} params - Parameters for running the onboarding flow.
+ * @param {Object} params.flowStep - The current step of the flow.
+ * @param {Object} params.flowConstructorParams - Common parameters to initialize a flow.
+ * @returns {Promise<boolean>} The completion status of the flow.
+ */
 async function runOnboardingFlow({ flowStep, flowConstructorParams }) {
   const {
     userInfo,
@@ -57,6 +79,18 @@ async function runOnboardingFlow({ flowStep, flowConstructorParams }) {
   return flowCompletionStatus;
 }
 
+/**
+ * Executes the signposting flow, providing options and signposts for user selections.
+ *
+ * @async
+ * @function
+ * @param {Object} params - Parameters for running the signposting flow.
+ * @param {Object} params.db - Database instance.
+ * @param {Object} params.flowConstructorParams - Common parameters to initialize a flow.
+ * @param {Object} params.flowStep - The current step of the flow.
+ * @param {string} params.userSelection - User-selected option within the flow.
+ * @returns {Promise<boolean>} The completion status of the flow.
+ */
 async function runSignpostingFlow({
   db,
   flowConstructorParams,
@@ -88,6 +122,17 @@ async function runSignpostingFlow({
   return flowCompletionStatus;
 }
 
+/**
+ * Executes the edit details flow for updating user information in Mongo.
+ *
+ * @async
+ * @function
+ * @param {Object} params - Parameters for running the edit details flow.
+ * @param {Object} params.flowStep - The current step of the flow.
+ * @param {Object} params.flowConstructorParams - Common parameters to initialize a flow.
+ * @param {Object} params.userDetailUpdate - Object containing updated user details.
+ * @returns {Promise<boolean>} The completion status of the flow.
+ */
 async function runEditDetailsFlow({
   flowStep,
   flowConstructorParams,
@@ -113,6 +158,16 @@ async function runEditDetailsFlow({
   );
   return flowCompletionStatus;
 }
+/**
+ * Executes a sample step-based flow.
+ *
+ * @async
+ * @function
+ * @param {Object} params - Parameters for running the step-based flow.
+ * @param {Object} params.flowConstructorParams - Common parameters to initialize a flow.
+ * @param {Object} params.flowStep - The current step of the flow.
+ * @returns {Promise<void>}
+ */
 async function runStepBasedFlow({ flowConstructorParams, flowStep }) {
   const {
     userInfo,
@@ -130,9 +185,20 @@ async function runStepBasedFlow({ flowConstructorParams, flowStep }) {
   });
   await stepBasedFlow.handleFlowStep(flowStep);
 }
+
+/**
+ * Main controller function that directs requests to the appropriate flow handler based on the flowName parameter.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Express request object containing request parameters and body data.
+ * @param {Object} res - Express response object for sending the flow completion status.
+ * @param {function} next - Express middleware next function.
+ */
 async function flowController(req, res, next) {
-  const db = req.app.locals.db;
-  const controlRoomDb = req.app.locals.secondaryDb;
+  const db = req.app.locals.signpostingOptionsDb; //Database for signposting
+  const controlRoomDb = req.app.locals.controlRoomDb; //Main message storage database
+  //initialize flow completion status to send back to webhook API
   let flowCompletionStatus;
   try {
     const {
@@ -146,7 +212,12 @@ async function flowController(req, res, next) {
     if (process.env.NODE_ENV !== "production") {
       console.log("req body", req.body);
     }
+    //get the current flow from request parameters sent from webhook API
     const flow = req.params.flowName;
+    //initialize data management class that interacts with a MongoDB database to manage and retrieve contact information, messages, and other related data for a specific organization.
+    /**
+     * @see {@link ContactModel}
+     */
     const contactModel = new ContactModel(
       controlRoomDb,
       startTime,
@@ -156,6 +227,7 @@ async function flowController(req, res, next) {
       await contactModel.updateContact(userInfo.WaId, { "opted_in": false });
       return res.status(200).send({ flowCompletionStatus: true });
     }
+    //create an object that stores all the necessary information utilized by all flows
     const flowConstructorParams = {
       contactModel,
       userInfo,
@@ -164,6 +236,7 @@ async function flowController(req, res, next) {
       organizationMessagingServiceSid,
       organizationPhoneNumber,
     };
+    //determine function to run based on request params, each function uses the `flowConstructorParams` to initialize the relevant Flow service/handler class
     if (flow === "onboarding") {
       flowCompletionStatus = await runOnboardingFlow({
         flowStep,
